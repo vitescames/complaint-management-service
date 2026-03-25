@@ -1,6 +1,8 @@
 package com.complaintmanagementservice.infrastructure.messaging;
 
 import com.complaintmanagementservice.adapters.out.messaging.dto.ComplaintCreatedQueueMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.jms.TextMessage;
 import org.junit.jupiter.api.Test;
 import org.springframework.jms.support.converter.MessageConversionException;
 
@@ -49,8 +51,8 @@ class JacksonTextMessageConverterTest {
 
     @Test
     void shouldRejectInvalidDeserializationPayload() throws Exception {
-        JacksonTextMessageConverter converter = new JacksonTextMessageConverter(new com.fasterxml.jackson.databind.ObjectMapper());
-        jakarta.jms.TextMessage textMessage = mock(jakarta.jms.TextMessage.class);
+        JacksonTextMessageConverter converter = new JacksonTextMessageConverter(new ObjectMapper());
+        jakarta.jms.TextMessage textMessage = mock(TextMessage.class);
         when(textMessage.getStringProperty("_type")).thenReturn(ComplaintCreatedQueueMessage.class.getName());
         when(textMessage.getText()).thenReturn("not-json");
 

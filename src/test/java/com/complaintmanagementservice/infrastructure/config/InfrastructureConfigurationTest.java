@@ -53,6 +53,7 @@ class InfrastructureConfigurationTest {
 
             @Override
             public void onEvent(DomainEvent event) {
+                // No-op observer used only to validate bean wiring in this test.
             }
         };
 

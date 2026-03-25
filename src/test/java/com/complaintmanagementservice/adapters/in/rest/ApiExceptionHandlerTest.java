@@ -6,9 +6,11 @@ import com.complaintmanagementservice.adapters.in.rest.error.ApiValidationErrorR
 import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import jakarta.validation.Valid;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.Path;
+import jakarta.validation.Validation;
+import jakarta.validation.constraints.NotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpInputMessage;
@@ -24,7 +26,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.lang.reflect.Method;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,11 +48,11 @@ class ApiExceptionHandlerTest {
                 new MethodArgumentNotValidException(validationMethodParameter(), bindingResult)
         );
 
-        ConstraintViolation<Object> violation = mockConstraintViolation("search.startDate", "Data inválida");
+        ConstraintViolation<?> violation = nestedStartDateViolation();
         ApiValidationErrorResponse constraintResponse = handler.handleValidationErrors(
                 new ConstraintViolationException(Set.of(violation))
         );
-        ConstraintViolation<Object> rootViolation = mockConstraintViolation("startDate", "Formato inválido");
+        ConstraintViolation<?> rootViolation = rootStartDateViolation();
         ApiValidationErrorResponse rootConstraintResponse = handler.handleValidationErrors(
                 new ConstraintViolationException(Set.of(rootViolation))
         );
@@ -154,13 +155,18 @@ class ApiExceptionHandlerTest {
         assertThat(responseStatusOf("handleUnexpectedError", Exception.class)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private ConstraintViolation<Object> mockConstraintViolation(String pathText, String message) {
-        ConstraintViolation<Object> violation = mock(ConstraintViolation.class);
-        Path path = mock(Path.class);
-        when(path.toString()).thenReturn(pathText);
-        when(violation.getPropertyPath()).thenReturn(path);
-        when(violation.getMessage()).thenReturn(message);
-        return violation;
+    private ConstraintViolation<?> nestedStartDateViolation() {
+        return firstViolation(new NestedValidationPayload(new InvalidDatePayload(null)));
+    }
+
+    private ConstraintViolation<?> rootStartDateViolation() {
+        return firstViolation(new InvalidFormatPayload(null));
+    }
+
+    private <T> ConstraintViolation<T> firstViolation(T payload) {
+        try (var validatorFactory = Validation.buildDefaultValidatorFactory()) {
+            return validatorFactory.getValidator().validate(payload).iterator().next();
+        }
     }
 
     private HttpMessageNotReadableException unreadableRequestWithInvalidFormat(
@@ -177,7 +183,7 @@ class ApiExceptionHandlerTest {
     }
 
     private MethodParameter validationMethodParameter() throws Exception {
-        Method method = ApiExceptionHandlerTest.class.getDeclaredMethod("validationPayloadMethod", Payload.class);
+        Method method = Payload.class.getDeclaredMethod("setCpf", String.class);
         return new MethodParameter(method, 0);
     }
 
@@ -186,9 +192,6 @@ class ApiExceptionHandlerTest {
                 .getDeclaredMethod(methodName, parameterTypes)
                 .getAnnotation(ResponseStatus.class);
         return responseStatus.value();
-    }
-
-    private void validationPayloadMethod(Payload payload) {
     }
 
     private static final class Payload {
@@ -211,4 +214,22 @@ class ApiExceptionHandlerTest {
             this.email = email;
         }
     }
+
+    private record NestedValidationPayload(@Valid InvalidDatePayload search) {
+            private NestedValidationPayload(InvalidDatePayload search) {
+                this.search = search;
+            }
+        }
+
+    private record InvalidDatePayload(@NotNull(message = "Data inválida") LocalDate startDate) {
+            private InvalidDatePayload(LocalDate startDate) {
+                this.startDate = startDate;
+            }
+        }
+
+    private record InvalidFormatPayload(@NotNull(message = "Formato inválido") LocalDate startDate) {
+            private InvalidFormatPayload(LocalDate startDate) {
+                this.startDate = startDate;
+            }
+        }
 }
