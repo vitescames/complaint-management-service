@@ -5,18 +5,17 @@ import com.complaintmanagementservice.adapters.in.rest.error.ApiFieldError;
 import com.complaintmanagementservice.adapters.in.rest.error.ApiValidationErrorResponse;
 import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
-import com.complaintmanagementservice.application.exception.RequestValidationException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.lang.reflect.Method;
@@ -37,12 +36,12 @@ class ApiExceptionHandlerTest {
         bindingResult.rejectValue("cpf", "invalid", "O CPF do cliente e invalido");
 
         BindException bindException = new BindException(bindingResult);
-        ResponseEntity<ApiValidationErrorResponse> bindResponse = handler.handleValidationErrors(bindException);
+        ApiValidationErrorResponse bindResponse = handler.handleValidationErrors(bindException);
 
         Method method = SampleController.class.getDeclaredMethod("sample", Payload.class);
         MethodParameter methodParameter = new MethodParameter(method, 0);
         MethodArgumentNotValidException methodArgumentNotValidException = new MethodArgumentNotValidException(methodParameter, bindingResult);
-        ResponseEntity<ApiValidationErrorResponse> methodResponse = handler.handleValidationErrors(methodArgumentNotValidException);
+        ApiValidationErrorResponse methodResponse = handler.handleValidationErrors(methodArgumentNotValidException);
 
         @SuppressWarnings("unchecked")
         ConstraintViolation<Object> violation = mock(ConstraintViolation.class);
@@ -50,20 +49,20 @@ class ApiExceptionHandlerTest {
         when(path.toString()).thenReturn("search.startDate");
         when(violation.getPropertyPath()).thenReturn(path);
         when(violation.getMessage()).thenReturn("Data invalida");
-        ResponseEntity<ApiValidationErrorResponse> constraintResponse = handler.handleValidationErrors(
+        ApiValidationErrorResponse constraintResponse = handler.handleValidationErrors(
                 new ConstraintViolationException(Set.of(violation))
         );
 
-        assertThat(bindResponse.getStatusCode().value()).isEqualTo(400);
-        assertThat(bindResponse.getBody().errors()).containsExactly(
+        assertThat(bindResponse.status()).isEqualTo(400);
+        assertThat(bindResponse.errors()).containsExactly(
                 new ApiFieldError("cpf", "O CPF do cliente e invalido"),
                 new ApiFieldError("email", "Formato de e-mail invalido")
         );
-        assertThat(methodResponse.getBody().errors()).containsExactly(
+        assertThat(methodResponse.errors()).containsExactly(
                 new ApiFieldError("cpf", "O CPF do cliente e invalido"),
                 new ApiFieldError("email", "Formato de e-mail invalido")
         );
-        assertThat(constraintResponse.getBody().errors()).containsExactly(
+        assertThat(constraintResponse.errors()).containsExactly(
                 new ApiFieldError("startDate", "Data invalida")
         );
 
@@ -74,56 +73,70 @@ class ApiExceptionHandlerTest {
         when(rootViolation.getPropertyPath()).thenReturn(rootPath);
         when(rootViolation.getMessage()).thenReturn("Formato invalido");
 
-        ResponseEntity<ApiValidationErrorResponse> rootConstraintResponse = handler.handleValidationErrors(
+        ApiValidationErrorResponse rootConstraintResponse = handler.handleValidationErrors(
                 new ConstraintViolationException(Set.of(rootViolation))
         );
-        ResponseEntity<ApiValidationErrorResponse> fallbackResponse = handler.handleValidationErrors(new RuntimeException("unexpected"));
+        ApiValidationErrorResponse fallbackResponse = handler.handleValidationErrors(new RuntimeException("unexpected"));
 
-        assertThat(rootConstraintResponse.getBody().errors()).containsExactly(
+        assertThat(rootConstraintResponse.errors()).containsExactly(
                 new ApiFieldError("startDate", "Formato invalido")
         );
-        assertThat(fallbackResponse.getBody().errors()).isEmpty();
+        assertThat(fallbackResponse.errors()).isEmpty();
     }
 
     @Test
-    void shouldBuildBadRequestResponses() throws Exception {
+    void shouldBuildBadRequestResponses() {
         MethodArgumentTypeMismatchException mismatchException = mock(MethodArgumentTypeMismatchException.class);
         when(mismatchException.getName()).thenReturn("startDate");
 
-        ResponseEntity<?> fieldErrorResponse = handler.handleBadRequest(mismatchException);
-        ResponseEntity<?> missingParameterResponse = handler.handleBadRequest(
+        ApiValidationErrorResponse fieldErrorResponse = handler.handleTypeMismatch(mismatchException);
+        ApiValidationErrorResponse missingParameterResponse = handler.handleMissingRequestParameter(
                 new MissingServletRequestParameterException("status", "Integer")
         );
-        ResponseEntity<?> malformedJsonResponse = handler.handleBadRequest(
-                new HttpMessageNotReadableException("bad json", mock(org.springframework.http.HttpInputMessage.class))
-        );
-        ResponseEntity<?> requestValidationResponse = handler.handleBadRequest(
-                new RequestValidationException("invalid")
-        );
+        ApiErrorResponse malformedJsonResponse = handler.handleBadRequest();
+        ApiErrorResponse requestValidationResponse = handler.handleBadRequest();
 
-        assertThat(fieldErrorResponse.getStatusCode().value()).isEqualTo(400);
-        assertThat(((ApiValidationErrorResponse) fieldErrorResponse.getBody()).errors())
+        assertThat(fieldErrorResponse.status()).isEqualTo(400);
+        assertThat(fieldErrorResponse.errors())
                 .containsExactly(new ApiFieldError("startDate", "Formato invalido para o campo informado"));
-        assertThat(((ApiValidationErrorResponse) missingParameterResponse.getBody()).errors())
+        assertThat(missingParameterResponse.errors())
                 .containsExactly(new ApiFieldError("status", "Parametro obrigatorio nao informado"));
-        assertThat(((ApiErrorResponse) malformedJsonResponse.getBody()).message())
+        assertThat(malformedJsonResponse.message())
                 .isEqualTo("Nao foi possivel interpretar a requisicao enviada");
-        assertThat(((ApiErrorResponse) requestValidationResponse.getBody()).message())
+        assertThat(requestValidationResponse.message())
                 .isEqualTo("Nao foi possivel interpretar a requisicao enviada");
     }
 
     @Test
     void shouldBuildMappedBusinessResponses() {
-        ResponseEntity<ApiErrorResponse> business = handler.handleBusinessViolation(new BusinessRuleViolationException("violacao"));
-        ResponseEntity<ApiErrorResponse> notFound = handler.handleReferenceDataNotFound(new ReferenceDataNotFoundException("nao encontrado"));
-        ResponseEntity<ApiErrorResponse> unexpected = handler.handleUnexpectedError(new RuntimeException("boom"));
+        ApiErrorResponse business = handler.handleBusinessViolation(new BusinessRuleViolationException("violacao"));
+        ApiErrorResponse notFound = handler.handleReferenceDataNotFound(new ReferenceDataNotFoundException("nao encontrado"));
+        ApiErrorResponse unexpected = handler.handleUnexpectedError(new RuntimeException("boom"));
 
-        assertThat(business.getStatusCode().value()).isEqualTo(422);
-        assertThat(business.getBody().message()).isEqualTo("violacao");
-        assertThat(notFound.getStatusCode().value()).isEqualTo(404);
-        assertThat(notFound.getBody().message()).isEqualTo("nao encontrado");
-        assertThat(unexpected.getStatusCode().value()).isEqualTo(500);
-        assertThat(unexpected.getBody().message()).isEqualTo("Ocorreu um erro interno. Tente novamente mais tarde.");
+        assertThat(business.status()).isEqualTo(422);
+        assertThat(business.message()).isEqualTo("violacao");
+        assertThat(notFound.status()).isEqualTo(404);
+        assertThat(notFound.message()).isEqualTo("nao encontrado");
+        assertThat(unexpected.status()).isEqualTo(500);
+        assertThat(unexpected.message()).isEqualTo("Ocorreu um erro interno. Tente novamente mais tarde.");
+    }
+
+    @Test
+    void shouldDeclareExpectedResponseStatuses() throws Exception {
+        assertThat(responseStatusOf("handleValidationErrors", Exception.class)).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(responseStatusOf("handleTypeMismatch", MethodArgumentTypeMismatchException.class)).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(responseStatusOf("handleMissingRequestParameter", MissingServletRequestParameterException.class)).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(responseStatusOf("handleBadRequest")).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(responseStatusOf("handleBusinessViolation", RuntimeException.class)).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+        assertThat(responseStatusOf("handleReferenceDataNotFound", ReferenceDataNotFoundException.class)).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(responseStatusOf("handleUnexpectedError", Exception.class)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private HttpStatus responseStatusOf(String methodName, Class<?>... parameterTypes) throws Exception {
+        ResponseStatus responseStatus = ApiExceptionHandler.class
+                .getDeclaredMethod(methodName, parameterTypes)
+                .getAnnotation(ResponseStatus.class);
+        return responseStatus.value();
     }
 
     private static final class Payload {

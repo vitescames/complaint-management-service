@@ -14,7 +14,6 @@ import com.complaintmanagementservice.adapters.out.persistence.repository.Custom
 import com.complaintmanagementservice.application.exception.InfrastructureUnavailableException;
 import com.complaintmanagementservice.application.exception.PersistenceOperationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
 import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.junit.jupiter.api.Test;

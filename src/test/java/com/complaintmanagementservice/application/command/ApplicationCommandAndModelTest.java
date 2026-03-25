@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -134,7 +135,7 @@ class ApplicationCommandAndModelTest {
         SearchComplaintsQuery partialDateQuery = SearchComplaintsQuery.builder()
                 .customerCpf(" ")
                 .categoryNames(Arrays.asList(" ", null))
-                .statusIds(Arrays.asList((Integer) null))
+                .statusIds(Collections.singletonList((Integer) null))
                 .startDate(LocalDate.of(2026, 3, 1))
                 .build();
 

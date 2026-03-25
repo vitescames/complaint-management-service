@@ -9,101 +9,105 @@ import com.complaintmanagementservice.application.exception.RequestValidationExc
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    private static final String INVALID_DATA_TITLE = "Dados invalidos";
+    private static final String BUSINESS_RULE_VIOLATION_TITLE = "Regra de negocio violada";
+    private static final String RESOURCE_NOT_FOUND_TITLE = "Recurso nao encontrado";
+    private static final String INTERNAL_ERROR_TITLE = "Erro interno";
+    private static final String INVALID_FIELD_FORMAT_MESSAGE = "Formato invalido para o campo informado";
+    private static final String MISSING_REQUIRED_PARAMETER_MESSAGE = "Parametro obrigatorio nao informado";
+    private static final String UNREADABLE_REQUEST_MESSAGE = "Nao foi possivel interpretar a requisicao enviada";
+    private static final String INTERNAL_ERROR_MESSAGE = "Ocorreu um erro interno. Tente novamente mais tarde.";
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler({
             MethodArgumentNotValidException.class,
             BindException.class,
             ConstraintViolationException.class
     })
-    public ResponseEntity<ApiValidationErrorResponse> handleValidationErrors(Exception exception) {
-        ApiValidationErrorResponse response = new ApiValidationErrorResponse(
-                "Dados invalidos",
+    public ApiValidationErrorResponse handleValidationErrors(Exception exception) {
+        return new ApiValidationErrorResponse(
+                INVALID_DATA_TITLE,
                 HttpStatus.BAD_REQUEST.value(),
                 resolveValidationErrors(exception)
         );
-        return ResponseEntity.badRequest().body(response);
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ApiValidationErrorResponse handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
+        return new ApiValidationErrorResponse(
+                INVALID_DATA_TITLE,
+                HttpStatus.BAD_REQUEST.value(),
+                List.of(new ApiFieldError(exception.getName(), INVALID_FIELD_FORMAT_MESSAGE))
+        );
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ApiValidationErrorResponse handleMissingRequestParameter(MissingServletRequestParameterException exception) {
+        return new ApiValidationErrorResponse(
+                INVALID_DATA_TITLE,
+                HttpStatus.BAD_REQUEST.value(),
+                List.of(new ApiFieldError(exception.getParameterName(), MISSING_REQUIRED_PARAMETER_MESSAGE))
+        );
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler({
             HttpMessageNotReadableException.class,
-            MethodArgumentTypeMismatchException.class,
-            MissingServletRequestParameterException.class,
             RequestValidationException.class
     })
-    public ResponseEntity<?> handleBadRequest(Exception exception) {
-        if (exception instanceof MethodArgumentTypeMismatchException mismatchException) {
-            ApiValidationErrorResponse response = new ApiValidationErrorResponse(
-                    "Dados invalidos",
-                    HttpStatus.BAD_REQUEST.value(),
-                    List.of(new ApiFieldError(mismatchException.getName(), "Formato invalido para o campo informado"))
-            );
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        if (exception instanceof MissingServletRequestParameterException missingParameterException) {
-            ApiValidationErrorResponse response = new ApiValidationErrorResponse(
-                    "Dados invalidos",
-                    HttpStatus.BAD_REQUEST.value(),
-                    List.of(new ApiFieldError(missingParameterException.getParameterName(), "Parametro obrigatorio nao informado"))
-            );
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                "Dados invalidos",
-                HttpStatus.BAD_REQUEST.value(),
-                "Nao foi possivel interpretar a requisicao enviada"
-        );
-        return ResponseEntity.badRequest().body(response);
+    public ApiErrorResponse handleBadRequest() {
+        return toApiErrorResponse(HttpStatus.BAD_REQUEST, INVALID_DATA_TITLE, UNREADABLE_REQUEST_MESSAGE);
     }
 
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
     @ExceptionHandler({
             BusinessRuleViolationException.class,
             DomainValidationException.class
     })
-    public ResponseEntity<ApiErrorResponse> handleBusinessViolation(RuntimeException exception) {
-        ApiErrorResponse response = new ApiErrorResponse(
-                "Regra de negocio violada",
-                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+    public ApiErrorResponse handleBusinessViolation(RuntimeException exception) {
+        return toApiErrorResponse(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                BUSINESS_RULE_VIOLATION_TITLE,
                 exception.getMessage()
         );
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
     }
 
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(ReferenceDataNotFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleReferenceDataNotFound(ReferenceDataNotFoundException exception) {
-        ApiErrorResponse response = new ApiErrorResponse(
-                "Recurso nao encontrado",
-                HttpStatus.NOT_FOUND.value(),
+    public ApiErrorResponse handleReferenceDataNotFound(ReferenceDataNotFoundException exception) {
+        return toApiErrorResponse(
+                HttpStatus.NOT_FOUND,
+                RESOURCE_NOT_FOUND_TITLE,
                 exception.getMessage()
         );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiErrorResponse> handleUnexpectedError(Exception ignored) {
-        ApiErrorResponse response = new ApiErrorResponse(
-                "Erro interno",
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Ocorreu um erro interno. Tente novamente mais tarde."
+    public ApiErrorResponse handleUnexpectedError(Exception ignored) {
+        return toApiErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                INTERNAL_ERROR_TITLE,
+                INTERNAL_ERROR_MESSAGE
         );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     private List<ApiFieldError> resolveValidationErrors(Exception exception) {
@@ -128,11 +132,15 @@ public class ApiExceptionHandler {
                     .toList();
         }
 
-        return new ArrayList<>();
+        return List.of();
     }
 
     private ApiFieldError toApiFieldError(FieldError fieldError) {
         return new ApiFieldError(fieldError.getField(), fieldError.getDefaultMessage());
+    }
+
+    private ApiErrorResponse toApiErrorResponse(HttpStatus status, String title, String message) {
+        return new ApiErrorResponse(title, status.value(), message);
     }
 
     private String lastPathSegment(String propertyPath) {

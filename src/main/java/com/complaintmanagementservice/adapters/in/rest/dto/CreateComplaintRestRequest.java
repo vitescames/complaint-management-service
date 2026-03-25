@@ -16,10 +16,9 @@ public record CreateComplaintRestRequest(
         @NotBlank(message = "O texto da reclamacao e obrigatorio")
         @Size(max = 4000, message = "O texto da reclamacao deve ter no maximo 4000 caracteres")
         String complaintText,
-        List<
-                @NotBlank(message = "A URL do documento e obrigatoria")
-                @Pattern(regexp = "https?://.+", message = "A URL do documento deve ser HTTP ou HTTPS valida")
-                String> documentUrls
+        List<@NotBlank(message = "A URL do documento e obrigatoria")
+             @Pattern(regexp = "https?://.+", message = "A URL do documento deve ser HTTP ou HTTPS valida")
+             String> documentUrls
 ) {
 
     public record CustomerPayload(

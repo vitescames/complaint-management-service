@@ -123,7 +123,7 @@ class ComplaintControllerTest {
                                   "complaintText": "Nao consigo acessar o app"
                                 }
                                 """))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.title").value("Regra de negocio violada"))
                 .andExpect(jsonPath("$.message").value("A data da reclamacao nao pode ser futura"));
     }
