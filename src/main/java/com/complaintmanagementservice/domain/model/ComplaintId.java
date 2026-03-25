@@ -2,13 +2,14 @@ package com.complaintmanagementservice.domain.model;
 
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
 
-import java.util.Objects;
 import java.util.UUID;
 
 public record ComplaintId(UUID value) {
 
     public ComplaintId {
-        Objects.requireNonNull(value, "value must not be null");
+        if (value == null) {
+            throw new DomainValidationException("O identificador da reclamacao e obrigatorio");
+        }
     }
 
     public static ComplaintId newId() {
@@ -20,7 +21,7 @@ public record ComplaintId(UUID value) {
             return new ComplaintId(UUID.fromString(rawValue));
         }
         catch (IllegalArgumentException exception) {
-            throw new DomainValidationException("Complaint id must be a valid UUID");
+            throw new DomainValidationException("O identificador da reclamacao e invalido");
         }
     }
 

@@ -2,15 +2,15 @@ package com.complaintmanagementservice.domain.model;
 
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
 
-import java.util.Objects;
-
 public record ComplaintText(String value) {
 
     public ComplaintText {
-        Objects.requireNonNull(value, "value must not be null");
+        if (value == null) {
+            throw new DomainValidationException("O texto da reclamacao e obrigatorio");
+        }
         String normalized = value.trim();
         if (normalized.isBlank() || normalized.length() > 4000) {
-            throw new DomainValidationException("Complaint text must contain between 1 and 4000 characters");
+            throw new DomainValidationException("O texto da reclamacao deve ter entre 1 e 4000 caracteres");
         }
         value = normalized;
     }

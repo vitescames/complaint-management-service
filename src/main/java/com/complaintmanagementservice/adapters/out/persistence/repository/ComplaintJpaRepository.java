@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,8 +16,8 @@ public interface ComplaintJpaRepository extends JpaRepository<ComplaintEntity, U
 
     @Override
     @EntityGraph(attributePaths = {"customer", "status", "categories", "documents"})
-    List<ComplaintEntity> findAll(Specification<ComplaintEntity> specification, Sort sort);
+    List<ComplaintEntity> findAll(@NonNull Specification<ComplaintEntity> specification, @NonNull Sort sort);
 
     @EntityGraph(attributePaths = {"customer", "status", "categories", "documents"})
-    List<ComplaintEntity> findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(LocalDate complaintDate, Integer statusId);
+    List<ComplaintEntity> findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(@NonNull LocalDate complaintDate, @NonNull Integer statusId);
 }

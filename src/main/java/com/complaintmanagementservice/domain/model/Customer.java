@@ -3,7 +3,6 @@ package com.complaintmanagementservice.domain.model;
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 public final class Customer {
 
@@ -12,14 +11,31 @@ public final class Customer {
     private final LocalDate birthDate;
     private final EmailAddress emailAddress;
 
-    public Customer(Cpf cpf, CustomerName name, LocalDate birthDate, EmailAddress emailAddress) {
-        this.cpf = Objects.requireNonNull(cpf, "cpf must not be null");
-        this.name = Objects.requireNonNull(name, "name must not be null");
-        this.birthDate = Objects.requireNonNull(birthDate, "birthDate must not be null");
-        this.emailAddress = Objects.requireNonNull(emailAddress, "emailAddress must not be null");
-        if (birthDate.isAfter(LocalDate.now())) {
-            throw new DomainValidationException("Customer birth date cannot be in the future");
+    private Customer(Builder builder) {
+        if (builder.cpf == null) {
+            throw new DomainValidationException("O CPF do cliente e obrigatorio");
         }
+        if (builder.name == null) {
+            throw new DomainValidationException("O nome do cliente e obrigatorio");
+        }
+        if (builder.birthDate == null) {
+            throw new DomainValidationException("A data de nascimento do cliente e obrigatoria");
+        }
+        if (builder.emailAddress == null) {
+            throw new DomainValidationException("O e-mail do cliente e obrigatorio");
+        }
+
+        this.cpf = builder.cpf;
+        this.name = builder.name;
+        this.birthDate = builder.birthDate;
+        this.emailAddress = builder.emailAddress;
+        if (birthDate.isAfter(LocalDate.now())) {
+            throw new DomainValidationException("A data de nascimento do cliente nao pode ser futura");
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public Cpf cpf() {
@@ -36,5 +52,40 @@ public final class Customer {
 
     public EmailAddress emailAddress() {
         return emailAddress;
+    }
+
+    public static final class Builder {
+
+        private Cpf cpf;
+        private CustomerName name;
+        private LocalDate birthDate;
+        private EmailAddress emailAddress;
+
+        private Builder() {
+        }
+
+        public Builder cpf(Cpf cpf) {
+            this.cpf = cpf;
+            return this;
+        }
+
+        public Builder name(CustomerName name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder birthDate(LocalDate birthDate) {
+            this.birthDate = birthDate;
+            return this;
+        }
+
+        public Builder emailAddress(EmailAddress emailAddress) {
+            this.emailAddress = emailAddress;
+            return this;
+        }
+
+        public Customer build() {
+            return new Customer(this);
+        }
     }
 }

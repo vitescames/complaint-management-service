@@ -2,12 +2,12 @@ package com.complaintmanagementservice.domain.model;
 
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
 
-import java.util.Objects;
-
 public record Cpf(String value) {
 
     public Cpf {
-        Objects.requireNonNull(value, "value must not be null");
+        if (value == null) {
+            throw new DomainValidationException("O CPF e obrigatorio");
+        }
         String normalized = value.replaceAll("\\D", "");
         validate(normalized);
         value = normalized;
@@ -15,11 +15,11 @@ public record Cpf(String value) {
 
     private static void validate(String cpf) {
         if (cpf.length() != 11 || cpf.chars().distinct().count() == 1) {
-            throw new DomainValidationException("CPF must be valid");
+            throw new DomainValidationException("CPF invalido");
         }
         if (calculateDigit(cpf, 9) != Character.getNumericValue(cpf.charAt(9))
                 || calculateDigit(cpf, 10) != Character.getNumericValue(cpf.charAt(10))) {
-            throw new DomainValidationException("CPF must be valid");
+            throw new DomainValidationException("CPF invalido");
         }
     }
 

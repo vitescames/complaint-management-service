@@ -40,21 +40,20 @@ application:
       initial-delay-millis: 250
       backoff-multiplier: 2.0
   resilience:
-    profiles:
-      persistence:
-        max-attempts: 3
-        wait-duration-millis: 100
-        sliding-window-size: 4
-        minimum-number-of-calls: 2
-        failure-rate-threshold: 50.0
-        wait-duration-in-open-state-millis: 5000
-      messaging:
-        max-attempts: 3
-        wait-duration-millis: 100
-        sliding-window-size: 4
-        minimum-number-of-calls: 2
-        failure-rate-threshold: 50.0
-        wait-duration-in-open-state-millis: 5000
+    persistence:
+      max-attempts: 3
+      wait-duration-millis: 100
+      sliding-window-size: 4
+      minimum-number-of-calls: 2
+      failure-rate-threshold: 50.0
+      wait-duration-in-open-state-millis: 5000
+    messaging:
+      max-attempts: 3
+      wait-duration-millis: 100
+      sliding-window-size: 4
+      minimum-number-of-calls: 2
+      failure-rate-threshold: 50.0
+      wait-duration-in-open-state-millis: 5000
   scheduler:
     sla-warning-cron: 0 0 7 * * *
 

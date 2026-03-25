@@ -9,11 +9,21 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record CreateComplaintQueueMessage(
-        @NotBlank @Pattern(regexp = "\\d{11}") String customerDocument,
-        @NotBlank @Size(max = 120) String customerFullName,
-        @NotNull LocalDate customerBirthDate,
-        @NotBlank @Email String customerEmailAddress,
-        @NotNull LocalDate occurrenceDate,
-        @NotBlank @Size(max = 4000) String description
+        @NotBlank(message = "O CPF do cliente e obrigatorio")
+        @Pattern(regexp = "\\d{11}", message = "O CPF do cliente e invalido")
+        String customerDocument,
+        @NotBlank(message = "O nome do cliente e obrigatorio")
+        @Size(max = 120, message = "O nome do cliente deve ter no maximo 120 caracteres")
+        String customerFullName,
+        @NotNull(message = "A data de nascimento do cliente e obrigatoria")
+        LocalDate customerBirthDate,
+        @NotBlank(message = "O e-mail do cliente e obrigatorio")
+        @Email(message = "Formato de e-mail invalido")
+        String customerEmailAddress,
+        @NotNull(message = "A data da ocorrencia e obrigatoria")
+        LocalDate occurrenceDate,
+        @NotBlank(message = "A descricao da reclamacao e obrigatoria")
+        @Size(max = 4000, message = "A descricao da reclamacao deve ter no maximo 4000 caracteres")
+        String description
 ) {
 }

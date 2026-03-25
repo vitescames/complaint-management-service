@@ -6,14 +6,13 @@ import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
 import com.complaintmanagementservice.domain.model.Complaint;
 
 import java.util.List;
-import java.util.Objects;
 
-public class SearchComplaintsService implements SearchComplaintsUseCase {
+public class SearchComplaintsUseCaseImpl implements SearchComplaintsUseCase {
 
     private final ComplaintRepositoryPort complaintRepositoryPort;
 
-    public SearchComplaintsService(ComplaintRepositoryPort complaintRepositoryPort) {
-        this.complaintRepositoryPort = Objects.requireNonNull(complaintRepositoryPort, "complaintRepositoryPort must not be null");
+    public SearchComplaintsUseCaseImpl(ComplaintRepositoryPort complaintRepositoryPort) {
+        this.complaintRepositoryPort = complaintRepositoryPort;
     }
 
     @Override

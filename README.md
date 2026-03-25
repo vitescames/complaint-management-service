@@ -3,15 +3,16 @@
 ## Overview
 
 `complaint-management-service` is a production-style PoC built with Java 17 and Spring Boot 4.
-It manages complaint intake through two entry points, classifies complaints automatically based on persisted keywords, stores the data in H2 through JPA, and publishes asynchronous notifications through an embedded ActiveMQ broker.
+It receives complaints through REST and JMS, classifies them with persisted category keywords, stores them in H2 through JPA, and publishes asynchronous notifications through an embedded ActiveMQ broker.
 
-The project was intentionally structured for a senior-level technical case:
+The project is intentionally structured for a senior-level technical case:
 
 - Hexagonal architecture with strict layer boundaries
 - Domain-centric design with always-valid domain objects
 - Separate input DTOs and mappers per channel
 - Lightweight CQRS with commands and queries
 - Embedded infrastructure for local execution
+- Observer-based domain event flow
 - Resilience around infrastructure-facing adapters
 - Full Maven build verification with JaCoCo at 100%
 
@@ -28,9 +29,9 @@ The codebase is organized around these macro layers:
   - Use cases
   - Commands and queries
   - Ports in and ports out
-  - Application-level handlers for domain events
+  - Observer-style domain event publisher and notification models
 - `adapters.in`
-  - REST controller and HTTP DTOs
+  - REST controller, HTTP error models, and request/response DTOs
   - JMS listener and queue DTOs
   - Channel-specific mappers that normalize payloads into the same application flow
 - `adapters.out`
@@ -39,8 +40,8 @@ The codebase is organized around these macro layers:
 - `infrastructure`
   - Spring configuration
   - Embedded ActiveMQ setup
+  - Custom JMS message conversion
   - Scheduler
-  - Exception handling
   - Resilience support
 
 ### High-level flow
@@ -49,13 +50,13 @@ The codebase is organized around these macro layers:
 flowchart LR
     A["POST /complaints"] --> C["CreateComplaintCommand"]
     B["complaint.received.queue"] --> C["CreateComplaintCommand"]
-    C --> D["CreateComplaintService"]
+    C --> D["CreateComplaintUseCaseImpl"]
     D --> E["ComplaintCategoryClassifier"]
     D --> F["ComplaintRepositoryPort"]
-    D --> G["DomainEventPublisherPort"]
-    G --> H["ComplaintCreatedDomainEventHandler"]
+    D --> G["ObserverDomainEventPublisher"]
+    G --> H["ComplaintCreatedQueueObserver"]
     H --> I["complaint.created.queue"]
-    J["Daily SLA scheduler"] --> K["PublishSlaWarningsService"]
+    J["Daily SLA scheduler"] --> K["PublishSlaWarningsUseCaseImpl"]
     K --> L["complaint.sla.warning.queue"]
 ```
 
@@ -63,12 +64,14 @@ flowchart LR
 
 - The domain does not depend on Spring, JPA, JMS, or Bean Validation.
 - REST and queue payloads are intentionally different and normalized by dedicated mappers into the same `CreateComplaintCommand`.
-- Complaint classification is data-driven. Categories and keywords are loaded from the database, so new categories can be introduced without changing the classifier code.
+- Commands and queries use manual builders and keep transport-neutral data. Domain objects are created inside the use cases.
+- Complaint classification is data-driven. Categories and keywords are loaded from the database, so new categories can be introduced without changing classifier code.
 - Complaint status is modeled as a domain enum and also backed by a reference table with fixed ids:
   - `1 = PENDING`
   - `2 = PROCESSING`
   - `3 = RESOLVED`
 - The initial complaint status is always `PENDING` and is never chosen by the client.
+- The HTTP layer returns explicit error response models instead of exposing raw `ProblemDetail`.
 - Resilience is applied at the outgoing adapter boundary, mainly around persistence and queue publishing, so business rules stay clean.
 - ActiveMQ runs embedded inside the application with dead-letter handling configured through destination policy.
 - Flyway is the only mechanism used to create and seed the database schema.
@@ -93,16 +96,16 @@ flowchart LR
 
 ```text
 src/main/java/com/complaintmanagementservice
-├── adapters
-│   ├── in
-│   │   ├── messaging
-│   │   └── rest
-│   └── out
-│       ├── messaging
-│       └── persistence
-├── application
-├── domain
-└── infrastructure
+|-- adapters
+|   |-- in
+|   |   |-- messaging
+|   |   `-- rest
+|   `-- out
+|       |-- messaging
+|       `-- persistence
+|-- application
+|-- domain
+`-- infrastructure
 ```
 
 ## Running Locally
@@ -239,13 +242,40 @@ curl -i -X POST "http://localhost:8080/complaints" \
   }'
 ```
 
-#### Response example
+#### Success response example
 
 ```json
 {
   "complaintId": "11111111-1111-1111-1111-111111111111",
   "statusId": 1,
   "statusName": "PENDING"
+}
+```
+
+#### Error response examples
+
+Validation and parsing errors return a field-oriented structure:
+
+```json
+{
+  "title": "Dados invalidos",
+  "status": 400,
+  "errors": [
+    {
+      "field": "customer.email",
+      "message": "Formato de e-mail invalido"
+    }
+  ]
+}
+```
+
+Business and generic failures return a simple message structure:
+
+```json
+{
+  "title": "Regra de negocio violada",
+  "status": 422,
+  "message": "A data da reclamacao nao pode ser futura"
 }
 ```
 
@@ -389,9 +419,9 @@ Classification is based on complaint text and persisted category keywords.
 
 Initial categories and examples of keywords:
 
-- `imobiliário`: `credito imobiliario`, `casa`, `apartamento`
+- `imobiliario`: `credito imobiliario`, `casa`, `apartamento`
 - `seguros`: `resgate`, `capitalizacao`, `socorro`
-- `cobrança`: `fatura`, `cobrança`, `valor`, `indevido`
+- `cobranca`: `fatura`, `cobranca`, `valor`, `indevido`
 - `acesso`: `acessar`, `login`, `senha`
 - `aplicativo`: `app`, `aplicativo`, `travando`, `erro`
 - `fraude`: `fatura`, `nao reconhece divida`, `fraude`
@@ -407,13 +437,13 @@ Because categories are loaded from the database, evolving the catalog is a data 
 
 ## Domain Event Flow
 
-Complaint creation uses a domain-event-based observer flow:
+Complaint creation uses a classic observer flow:
 
 1. A complaint is created in the domain and emits `ComplaintCreatedDomainEvent`.
 2. The application saves the complaint.
-3. The application publishes the domain event through `DomainEventPublisherPort`.
-4. The Spring observer reacts to the domain event.
-5. `ComplaintCreatedDomainEventHandler` maps it into an application notification.
+3. The application publishes the domain event through `ObserverDomainEventPublisher`.
+4. Registered observers are notified through the shared `DomainEventObserver` contract.
+5. `ComplaintCreatedQueueObserver` reacts to `ComplaintCreatedDomainEvent`.
 6. The messaging adapter publishes the final message to `complaint.created.queue`.
 
 This keeps the domain independent from ActiveMQ while still enabling asynchronous reactions after successful creation.
@@ -461,10 +491,10 @@ The goals are:
 - reduce pressure on degraded infrastructure
 - keep retry logic out of controllers and domain objects
 
-Profiles are configured in `application.yml` for:
+Profiles are configured in `src/main/resources/application.yml` for:
 
-- `persistence`
-- `messaging`
+- `application.resilience.persistence`
+- `application.resilience.messaging`
 
 ## Main Files
 
@@ -472,12 +502,16 @@ Profiles are configured in `application.yml` for:
   - `src/main/java/com/complaintmanagementservice/ComplaintManagementServiceApplication.java`
 - REST controller:
   - `src/main/java/com/complaintmanagementservice/adapters/in/rest/ComplaintController.java`
+- REST exception handler:
+  - `src/main/java/com/complaintmanagementservice/adapters/in/rest/ApiExceptionHandler.java`
 - Queue listener:
   - `src/main/java/com/complaintmanagementservice/adapters/in/messaging/ComplaintReceivedListener.java`
 - Complaint creation use case:
-  - `src/main/java/com/complaintmanagementservice/application/usecase/CreateComplaintService.java`
+  - `src/main/java/com/complaintmanagementservice/application/usecase/CreateComplaintUseCaseImpl.java`
 - Complaint search use case:
-  - `src/main/java/com/complaintmanagementservice/application/usecase/SearchComplaintsService.java`
+  - `src/main/java/com/complaintmanagementservice/application/usecase/SearchComplaintsUseCaseImpl.java`
+- SLA warning use case:
+  - `src/main/java/com/complaintmanagementservice/application/usecase/PublishSlaWarningsUseCaseImpl.java`
 - Domain classifier:
   - `src/main/java/com/complaintmanagementservice/domain/service/ComplaintCategoryClassifier.java`
 - SLA policy:
@@ -486,6 +520,8 @@ Profiles are configured in `application.yml` for:
   - `src/main/java/com/complaintmanagementservice/infrastructure/scheduler/SlaWarningScheduler.java`
 - Messaging configuration:
   - `src/main/java/com/complaintmanagementservice/infrastructure/config/MessagingConfiguration.java`
+- Application configuration:
+  - `src/main/java/com/complaintmanagementservice/infrastructure/config/ApplicationConfiguration.java`
 - Flyway migration:
   - `src/main/resources/db/migration/V1__create_schema.sql`
 

@@ -4,13 +4,15 @@ import com.complaintmanagementservice.TestFixtures;
 import com.complaintmanagementservice.adapters.in.rest.mapper.ComplaintResponseMapper;
 import com.complaintmanagementservice.adapters.in.rest.mapper.CreateComplaintRestRequestMapper;
 import com.complaintmanagementservice.adapters.in.rest.mapper.SearchComplaintsQueryMapper;
+import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
+import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
 import com.complaintmanagementservice.application.port.in.CreateComplaintUseCase;
 import com.complaintmanagementservice.application.port.in.SearchComplaintsUseCase;
-import com.complaintmanagementservice.infrastructure.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import java.util.List;
 
@@ -31,17 +33,7 @@ class ComplaintControllerTest {
         SearchComplaintsUseCase searchComplaintsUseCase = mock(SearchComplaintsUseCase.class);
         when(createComplaintUseCase.create(any())).thenReturn(TestFixtures.complaint());
 
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                        new ComplaintController(
-                                createComplaintUseCase,
-                                searchComplaintsUseCase,
-                                new CreateComplaintRestRequestMapper(),
-                                new SearchComplaintsQueryMapper(),
-                                new ComplaintResponseMapper()
-                        )
-                )
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+        MockMvc mockMvc = mockMvc(createComplaintUseCase, searchComplaintsUseCase);
 
         mockMvc.perform(post("/complaints")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -71,21 +63,11 @@ class ComplaintControllerTest {
         SearchComplaintsUseCase searchComplaintsUseCase = mock(SearchComplaintsUseCase.class);
         when(searchComplaintsUseCase.search(any())).thenReturn(List.of(TestFixtures.complaint()));
 
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                        new ComplaintController(
-                                createComplaintUseCase,
-                                searchComplaintsUseCase,
-                                new CreateComplaintRestRequestMapper(),
-                                new SearchComplaintsQueryMapper(),
-                                new ComplaintResponseMapper()
-                        )
-                )
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+        MockMvc mockMvc = mockMvc(createComplaintUseCase, searchComplaintsUseCase);
 
         mockMvc.perform(get("/complaints")
                         .param("customerCpf", "52998224725")
-                        .param("categories", "acesso", "cobrança")
+                        .param("categories", "acesso", "cobranca")
                         .param("status", "1")
                         .param("startDate", "2026-03-01")
                         .param("endDate", "2026-03-31"))
@@ -96,18 +78,8 @@ class ComplaintControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenPayloadIsInvalid() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                        new ComplaintController(
-                                mock(CreateComplaintUseCase.class),
-                                mock(SearchComplaintsUseCase.class),
-                                new CreateComplaintRestRequestMapper(),
-                                new SearchComplaintsQueryMapper(),
-                                new ComplaintResponseMapper()
-                        )
-                )
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+    void shouldReturnFieldErrorsWhenPayloadIsInvalid() throws Exception {
+        MockMvc mockMvc = mockMvc(mock(CreateComplaintUseCase.class), mock(SearchComplaintsUseCase.class));
 
         mockMvc.perform(post("/complaints")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -123,6 +95,107 @@ class ComplaintControllerTest {
                                   "complaintText": ""
                                 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Dados invalidos"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.length()").value(7));
+    }
+
+    @Test
+    void shouldReturnBusinessViolationWhenUseCaseRejectsRequest() throws Exception {
+        CreateComplaintUseCase createComplaintUseCase = mock(CreateComplaintUseCase.class);
+        when(createComplaintUseCase.create(any()))
+                .thenThrow(new BusinessRuleViolationException("A data da reclamacao nao pode ser futura"));
+
+        MockMvc mockMvc = mockMvc(createComplaintUseCase, mock(SearchComplaintsUseCase.class));
+
+        mockMvc.perform(post("/complaints")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customer": {
+                                    "cpf": "52998224725",
+                                    "name": "Maria Silva",
+                                    "birthDate": "1990-06-15",
+                                    "email": "maria@example.com"
+                                  },
+                                  "complaintCreatedDate": "2026-03-20",
+                                  "complaintText": "Nao consigo acessar o app"
+                                }
+                                """))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.title").value("Regra de negocio violada"))
+                .andExpect(jsonPath("$.message").value("A data da reclamacao nao pode ser futura"));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenReferenceDataIsMissing() throws Exception {
+        CreateComplaintUseCase createComplaintUseCase = mock(CreateComplaintUseCase.class);
+        when(createComplaintUseCase.create(any()))
+                .thenThrow(new ReferenceDataNotFoundException("O catalogo de categorias de reclamacao nao esta configurado"));
+
+        MockMvc mockMvc = mockMvc(createComplaintUseCase, mock(SearchComplaintsUseCase.class));
+
+        mockMvc.perform(post("/complaints")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customer": {
+                                    "cpf": "52998224725",
+                                    "name": "Maria Silva",
+                                    "birthDate": "1990-06-15",
+                                    "email": "maria@example.com"
+                                  },
+                                  "complaintCreatedDate": "2026-03-20",
+                                  "complaintText": "Nao consigo acessar o app"
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Recurso nao encontrado"))
+                .andExpect(jsonPath("$.message").value("O catalogo de categorias de reclamacao nao esta configurado"));
+    }
+
+    @Test
+    void shouldReturnFriendlyInternalError() throws Exception {
+        CreateComplaintUseCase createComplaintUseCase = mock(CreateComplaintUseCase.class);
+        when(createComplaintUseCase.create(any())).thenThrow(new IllegalStateException("technical error"));
+
+        MockMvc mockMvc = mockMvc(createComplaintUseCase, mock(SearchComplaintsUseCase.class));
+
+        mockMvc.perform(post("/complaints")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customer": {
+                                    "cpf": "52998224725",
+                                    "name": "Maria Silva",
+                                    "birthDate": "1990-06-15",
+                                    "email": "maria@example.com"
+                                  },
+                                  "complaintCreatedDate": "2026-03-20",
+                                  "complaintText": "Nao consigo acessar o app"
+                                }
+                                """))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.title").value("Erro interno"))
+                .andExpect(jsonPath("$.message").value("Ocorreu um erro interno. Tente novamente mais tarde."));
+    }
+
+    private MockMvc mockMvc(CreateComplaintUseCase createComplaintUseCase, SearchComplaintsUseCase searchComplaintsUseCase) {
+        LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+        validator.afterPropertiesSet();
+
+        return MockMvcBuilders.standaloneSetup(
+                        new ComplaintController(
+                                createComplaintUseCase,
+                                searchComplaintsUseCase,
+                                new CreateComplaintRestRequestMapper(),
+                                new SearchComplaintsQueryMapper(),
+                                new ComplaintResponseMapper()
+                        )
+                )
+                .setControllerAdvice(new ApiExceptionHandler())
+                .setValidator(validator)
+                .build();
     }
 }

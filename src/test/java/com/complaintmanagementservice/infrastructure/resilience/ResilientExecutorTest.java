@@ -65,4 +65,33 @@ class ResilientExecutorTest {
                 .isInstanceOf(CallNotPermittedException.class);
         assertThat(executor.isCallPermitted(ResilienceProfile.MESSAGING)).isFalse();
     }
+
+    @Test
+    void shouldFailWhenProfileIsMissing() {
+        ResilientExecutor executor = new ResilientExecutor(Map.of(), Map.of());
+
+        assertThatThrownBy(() -> executor.executeSupplier(ResilienceProfile.PERSISTENCE, () -> "value"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Resilience profile is not configured: PERSISTENCE");
+        assertThatThrownBy(() -> executor.executeRunnable(ResilienceProfile.MESSAGING, () -> {
+        }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Resilience profile is not configured: MESSAGING");
+
+        ResilientExecutor missingRetryExecutor = new ResilientExecutor(
+                Map.of(ResilienceProfile.PERSISTENCE, CircuitBreaker.ofDefaults("cb-only")),
+                Map.of()
+        );
+        assertThatThrownBy(() -> missingRetryExecutor.executeSupplier(ResilienceProfile.PERSISTENCE, () -> "value"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Resilience profile is not configured: PERSISTENCE");
+
+        ResilientExecutor missingCircuitBreakerExecutor = new ResilientExecutor(
+                Map.of(),
+                Map.of(ResilienceProfile.MESSAGING, Retry.ofDefaults("retry-only"))
+        );
+        assertThatThrownBy(() -> missingCircuitBreakerExecutor.executeSupplier(ResilienceProfile.MESSAGING, () -> "value"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Resilience profile is not configured: MESSAGING");
+    }
 }

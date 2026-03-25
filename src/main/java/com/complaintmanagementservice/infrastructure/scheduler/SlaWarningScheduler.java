@@ -2,7 +2,9 @@ package com.complaintmanagementservice.infrastructure.scheduler;
 
 import com.complaintmanagementservice.application.port.in.PublishSlaWarningsUseCase;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
+@Component
 public class SlaWarningScheduler {
 
     private final PublishSlaWarningsUseCase publishSlaWarningsUseCase;

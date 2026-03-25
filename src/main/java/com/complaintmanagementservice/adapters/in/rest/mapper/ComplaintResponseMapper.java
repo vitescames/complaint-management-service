@@ -3,10 +3,12 @@ package com.complaintmanagementservice.adapters.in.rest.mapper;
 import com.complaintmanagementservice.adapters.in.rest.dto.ComplaintSearchResponse;
 import com.complaintmanagementservice.adapters.in.rest.dto.CreateComplaintRestResponse;
 import com.complaintmanagementservice.domain.model.Complaint;
+import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
 import java.util.List;
 
+@Component
 public class ComplaintResponseMapper {
 
     public CreateComplaintRestResponse toCreateResponse(Complaint complaint) {

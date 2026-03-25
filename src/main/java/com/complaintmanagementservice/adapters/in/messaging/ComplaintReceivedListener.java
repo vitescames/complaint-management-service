@@ -6,7 +6,9 @@ import com.complaintmanagementservice.application.port.in.CreateComplaintUseCase
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import org.springframework.jms.annotation.JmsListener;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ComplaintReceivedListener {
 
     private final CreateComplaintUseCase createComplaintUseCase;
