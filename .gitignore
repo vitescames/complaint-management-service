@@ -1,0 +1,58 @@
+# Maven and build outputs
+target/
+out/
+bin/
+
+# Java artifacts
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.jpi
+*.hprof
+
+# Logs
+*.log
+logs/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.classpath
+.project
+.settings/
+.factorypath
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VS Code Java
+.metadata/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Local database and runtime leftovers
+*.mv.db
+*.trace.db
+hs_err_pid*
+replay_pid*
