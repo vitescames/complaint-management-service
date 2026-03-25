@@ -57,16 +57,16 @@ class DomainServicesTest {
                 .isEqualTo(LocalDate.of(2026, 3, 16));
         assertThat(complaintSlaPolicy.isWarningDue(complaint, LocalDate.of(2026, 3, 23))).isTrue();
 
-        Complaint resolvedComplaint = Complaint.reconstitute(
-                complaint.id(),
-                complaint.customer(),
-                complaint.complaintDate(),
-                complaint.complaintText(),
-                complaint.documentUrls(),
-                ComplaintStatus.RESOLVED,
-                complaint.categories(),
-                complaint.registeredAt()
-        );
+        Complaint resolvedComplaint = Complaint.builder()
+                .id(complaint.id())
+                .customer(complaint.customer())
+                .complaintDate(complaint.complaintDate())
+                .complaintText(complaint.complaintText())
+                .documentUrls(complaint.documentUrls())
+                .status(ComplaintStatus.RESOLVED)
+                .categories(complaint.categories())
+                .registeredAt(complaint.registeredAt())
+                .buildReconstituted();
 
         assertThat(complaintSlaPolicy.isWarningDue(resolvedComplaint, LocalDate.of(2026, 3, 23))).isFalse();
         assertThat(complaintSlaPolicy.isWarningDue(complaint, LocalDate.of(2026, 3, 22))).isFalse();

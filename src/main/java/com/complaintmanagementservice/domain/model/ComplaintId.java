@@ -1,6 +1,7 @@
 package com.complaintmanagementservice.domain.model;
 
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
+import org.jspecify.annotations.NonNull;
 
 import java.util.UUID;
 
@@ -8,7 +9,7 @@ public record ComplaintId(UUID value) {
 
     public ComplaintId {
         if (value == null) {
-            throw new DomainValidationException("O identificador da reclamacao e obrigatorio");
+            throw new DomainValidationException("O identificador da reclamação é obrigatório.");
         }
     }
 
@@ -21,12 +22,12 @@ public record ComplaintId(UUID value) {
             return new ComplaintId(UUID.fromString(rawValue));
         }
         catch (IllegalArgumentException exception) {
-            throw new DomainValidationException("O identificador da reclamacao e invalido");
+            throw new DomainValidationException("O identificador da reclamação é inválido.");
         }
     }
 
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return value.toString();
     }
 }

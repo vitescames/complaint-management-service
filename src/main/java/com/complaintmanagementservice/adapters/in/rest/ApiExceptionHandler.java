@@ -5,7 +5,7 @@ import com.complaintmanagementservice.adapters.in.rest.error.ApiFieldError;
 import com.complaintmanagementservice.adapters.in.rest.error.ApiValidationErrorResponse;
 import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
-import com.complaintmanagementservice.application.exception.RequestValidationException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -25,13 +25,14 @@ import java.util.List;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-    private static final String INVALID_DATA_TITLE = "Dados invalidos";
-    private static final String BUSINESS_RULE_VIOLATION_TITLE = "Regra de negocio violada";
-    private static final String RESOURCE_NOT_FOUND_TITLE = "Recurso nao encontrado";
+    private static final String INVALID_DATA_TITLE = "Dados inválidos";
+    private static final String BUSINESS_RULE_VIOLATION_TITLE = "Regra de negócio violada";
+    private static final String RESOURCE_NOT_FOUND_TITLE = "Recurso não encontrado";
     private static final String INTERNAL_ERROR_TITLE = "Erro interno";
-    private static final String INVALID_FIELD_FORMAT_MESSAGE = "Formato invalido para o campo informado";
-    private static final String MISSING_REQUIRED_PARAMETER_MESSAGE = "Parametro obrigatorio nao informado";
-    private static final String UNREADABLE_REQUEST_MESSAGE = "Nao foi possivel interpretar a requisicao enviada";
+    private static final String INVALID_FIELD_FORMAT_MESSAGE = "Formato inválido";
+    private static final String INVALID_DATE_MESSAGE = "Data inválida";
+    private static final String MISSING_REQUIRED_PARAMETER_MESSAGE = "Não pode ser nulo ou vazio";
+    private static final String UNREADABLE_REQUEST_MESSAGE = "Não foi possível interpretar a requisição enviada.";
     private static final String INTERNAL_ERROR_MESSAGE = "Ocorreu um erro interno. Tente novamente mais tarde.";
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -54,7 +55,7 @@ public class ApiExceptionHandler {
         return new ApiValidationErrorResponse(
                 INVALID_DATA_TITLE,
                 HttpStatus.BAD_REQUEST.value(),
-                List.of(new ApiFieldError(exception.getName(), INVALID_FIELD_FORMAT_MESSAGE))
+                List.of(new ApiFieldError(exception.getName(), messageForTargetType(exception.getRequiredType())))
         );
     }
 
@@ -69,11 +70,18 @@ public class ApiExceptionHandler {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler({
-            HttpMessageNotReadableException.class,
-            RequestValidationException.class
-    })
-    public ApiErrorResponse handleBadRequest() {
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public Object handleUnreadableRequest(HttpMessageNotReadableException exception) {
+        if (exception.getCause() instanceof InvalidFormatException invalidFormatException
+                && !invalidFormatException.getPath().isEmpty()) {
+            String fieldName = invalidFormatException.getPath().get(invalidFormatException.getPath().size() - 1).getFieldName();
+            return new ApiValidationErrorResponse(
+                    INVALID_DATA_TITLE,
+                    HttpStatus.BAD_REQUEST.value(),
+                    List.of(new ApiFieldError(fieldName, messageForTargetType(invalidFormatException.getTargetType())))
+            );
+        }
+
         return toApiErrorResponse(HttpStatus.BAD_REQUEST, INVALID_DATA_TITLE, UNREADABLE_REQUEST_MESSAGE);
     }
 
@@ -146,5 +154,12 @@ public class ApiExceptionHandler {
     private String lastPathSegment(String propertyPath) {
         int separatorIndex = propertyPath.lastIndexOf('.');
         return separatorIndex >= 0 ? propertyPath.substring(separatorIndex + 1) : propertyPath;
+    }
+
+    private String messageForTargetType(Class<?> targetType) {
+        if (targetType != null && java.time.temporal.Temporal.class.isAssignableFrom(targetType)) {
+            return INVALID_DATE_MESSAGE;
+        }
+        return INVALID_FIELD_FORMAT_MESSAGE;
     }
 }

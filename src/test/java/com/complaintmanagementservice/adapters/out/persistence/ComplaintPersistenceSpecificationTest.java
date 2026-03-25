@@ -25,13 +25,12 @@ import static org.mockito.Mockito.when;
 
 class ComplaintPersistenceSpecificationTest {
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldBuildSpecificationUsingAllFilters() {
         SearchComplaintsQuery query = TestFixtures.searchQuery();
         Specification<ComplaintEntity> specification = ComplaintSpecifications.from(query);
 
-        Root<ComplaintEntity> root = mock(Root.class);
+        Root root = mock(Root.class);
         CriteriaQuery criteriaQuery = mock(CriteriaQuery.class);
         CriteriaBuilder criteriaBuilder = mock(CriteriaBuilder.class);
         Path customerPath = mock(Path.class);
@@ -71,13 +70,12 @@ class ComplaintPersistenceSpecificationTest {
         verify(criteriaBuilder).lessThanOrEqualTo(complaintDatePath, LocalDate.of(2026, 3, 31));
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldBuildSpecificationWithoutFilters() {
         SearchComplaintsQuery query = SearchComplaintsQuery.builder().build();
         Specification<ComplaintEntity> specification = ComplaintSpecifications.from(query);
 
-        Root<ComplaintEntity> root = mock(Root.class);
+        Root root = mock(Root.class);
         CriteriaQuery criteriaQuery = mock(CriteriaQuery.class);
         CriteriaBuilder criteriaBuilder = mock(CriteriaBuilder.class);
         Predicate finalPredicate = mock(Predicate.class);

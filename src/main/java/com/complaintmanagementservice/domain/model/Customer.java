@@ -12,26 +12,15 @@ public final class Customer {
     private final EmailAddress emailAddress;
 
     private Customer(Builder builder) {
-        if (builder.cpf == null) {
-            throw new DomainValidationException("O CPF do cliente e obrigatorio");
-        }
-        if (builder.name == null) {
-            throw new DomainValidationException("O nome do cliente e obrigatorio");
-        }
-        if (builder.birthDate == null) {
-            throw new DomainValidationException("A data de nascimento do cliente e obrigatoria");
-        }
-        if (builder.emailAddress == null) {
-            throw new DomainValidationException("O e-mail do cliente e obrigatorio");
-        }
+        Cpf validatedCpf = requireCpf(builder.cpf);
+        CustomerName validatedName = requireName(builder.name);
+        LocalDate validatedBirthDate = requireBirthDate(builder.birthDate);
+        EmailAddress validatedEmailAddress = requireEmailAddress(builder.emailAddress);
 
-        this.cpf = builder.cpf;
-        this.name = builder.name;
-        this.birthDate = builder.birthDate;
-        this.emailAddress = builder.emailAddress;
-        if (birthDate.isAfter(LocalDate.now())) {
-            throw new DomainValidationException("A data de nascimento do cliente nao pode ser futura");
-        }
+        this.cpf = validatedCpf;
+        this.name = validatedName;
+        this.birthDate = validatedBirthDate;
+        this.emailAddress = validatedEmailAddress;
     }
 
     public static Builder builder() {
@@ -87,5 +76,36 @@ public final class Customer {
         public Customer build() {
             return new Customer(this);
         }
+    }
+
+    private Cpf requireCpf(Cpf cpf) {
+        if (cpf == null) {
+            throw new DomainValidationException("O CPF do cliente é obrigatório.");
+        }
+        return cpf;
+    }
+
+    private CustomerName requireName(CustomerName name) {
+        if (name == null) {
+            throw new DomainValidationException("O nome do cliente é obrigatório.");
+        }
+        return name;
+    }
+
+    private LocalDate requireBirthDate(LocalDate birthDate) {
+        if (birthDate == null) {
+            throw new DomainValidationException("A data de nascimento do cliente é obrigatória.");
+        }
+        if (birthDate.isAfter(LocalDate.now())) {
+            throw new DomainValidationException("A data de nascimento do cliente não pode ser futura.");
+        }
+        return birthDate;
+    }
+
+    private EmailAddress requireEmailAddress(EmailAddress emailAddress) {
+        if (emailAddress == null) {
+            throw new DomainValidationException("O e-mail do cliente é obrigatório.");
+        }
+        return emailAddress;
     }
 }

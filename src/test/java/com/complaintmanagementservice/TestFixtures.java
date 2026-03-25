@@ -64,16 +64,16 @@ public final class TestFixtures {
     }
 
     public static Complaint complaint() {
-        return Complaint.reconstitute(
-                new ComplaintId(UUID.fromString("11111111-1111-1111-1111-111111111111")),
-                customer(),
-                LocalDate.of(2026, 3, 20),
-                new ComplaintText("Nao consigo acessar o app e a fatura esta indevida"),
-                List.of(new DocumentUrl("https://example.com/doc-1")),
-                ComplaintStatus.PENDING,
-                Set.of(acessoCategory(), cobrancaCategory()),
-                Instant.parse("2026-03-23T10:15:30Z")
-        );
+        return Complaint.builder()
+                .id(new ComplaintId(UUID.fromString("11111111-1111-1111-1111-111111111111")))
+                .customer(customer())
+                .complaintDate(LocalDate.of(2026, 3, 20))
+                .complaintText(new ComplaintText("Nao consigo acessar o app e a fatura esta indevida"))
+                .documentUrls(List.of(new DocumentUrl("https://example.com/doc-1")))
+                .status(ComplaintStatus.PENDING)
+                .categories(Set.of(acessoCategory(), cobrancaCategory()))
+                .registeredAt(Instant.parse("2026-03-23T10:15:30Z"))
+                .buildReconstituted();
     }
 
     public static Complaint createdComplaint() {
@@ -118,15 +118,15 @@ public final class TestFixtures {
     }
 
     public static Complaint approachingSlaComplaint() {
-        return Complaint.reconstitute(
-                complaint().id(),
-                complaint().customer(),
-                LocalDate.of(2026, 3, 16),
-                complaint().complaintText(),
-                complaint().documentUrls(),
-                ComplaintStatus.PROCESSING,
-                complaint().categories(),
-                complaint().registeredAt()
-        );
+        return Complaint.builder()
+                .id(complaint().id())
+                .customer(complaint().customer())
+                .complaintDate(LocalDate.of(2026, 3, 16))
+                .complaintText(complaint().complaintText())
+                .documentUrls(complaint().documentUrls())
+                .status(ComplaintStatus.PROCESSING)
+                .categories(complaint().categories())
+                .registeredAt(complaint().registeredAt())
+                .buildReconstituted();
     }
 }

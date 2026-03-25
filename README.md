@@ -64,7 +64,7 @@ flowchart LR
 
 - The domain does not depend on Spring, JPA, JMS, or Bean Validation.
 - REST and queue payloads are intentionally different and normalized by dedicated mappers into the same `CreateComplaintCommand`.
-- Commands and queries use manual builders and keep transport-neutral data. Domain objects are created inside the use cases.
+- Commands and queries use manual builders and keep transport-neutral data. They remain lightweight carriers, and domain objects are created inside the use cases.
 - Complaint classification is data-driven. Categories and keywords are loaded from the database, so new categories can be introduced without changing classifier code.
 - Complaint status is modeled as a domain enum and also backed by a reference table with fixed ids:
   - `1 = PENDING`
@@ -214,7 +214,7 @@ Creates a complaint through the REST channel.
     "email": "maria.silva@example.com"
   },
   "complaintCreatedDate": "2026-03-20",
-  "complaintText": "Nao consigo acessar o app e a senha sempre falha",
+  "complaintText": "Não consigo acessar o app e a senha sempre falha",
   "documentUrls": [
     "https://example.com/documents/evidence-1.pdf",
     "https://example.com/documents/evidence-2.pdf"
@@ -235,7 +235,7 @@ curl -i -X POST "http://localhost:8080/complaints" \
       "email": "maria.silva@example.com"
     },
     "complaintCreatedDate": "2026-03-20",
-    "complaintText": "Nao consigo acessar o app e a senha sempre falha",
+    "complaintText": "Não consigo acessar o app e a senha sempre falha",
     "documentUrls": [
       "https://example.com/documents/evidence-1.pdf"
     ]
@@ -258,12 +258,12 @@ Validation and parsing errors return a field-oriented structure:
 
 ```json
 {
-  "title": "Dados invalidos",
+  "title": "Dados inválidos",
   "status": 400,
   "errors": [
     {
       "field": "customer.email",
-      "message": "Formato de e-mail invalido"
+      "message": "Formato inválido"
     }
   ]
 }
@@ -273,9 +273,9 @@ Business and generic failures return a simple message structure:
 
 ```json
 {
-  "title": "Regra de negocio violada",
+  "title": "Regra de negócio violada",
   "status": 422,
-  "message": "A data da reclamacao nao pode ser futura"
+  "message": "A data da reclamação não pode ser futura."
 }
 ```
 
@@ -319,7 +319,7 @@ curl "http://localhost:8080/complaints?customerCpf=52998224725&categories=acesso
   {
     "complaintId": "11111111-1111-1111-1111-111111111111",
     "complaintCreatedDate": "2026-03-20",
-    "complaintText": "Nao consigo acessar o app e a senha sempre falha",
+    "complaintText": "Não consigo acessar o app e a senha sempre falha",
     "status": {
       "id": 1,
       "name": "PENDING"
@@ -371,7 +371,7 @@ The queue listener accepts a different payload than the REST API.
   "customerBirthDate": "1990-05-10",
   "customerEmailAddress": "maria.silva@example.com",
   "occurrenceDate": "2026-03-20",
-  "description": "Nao consigo acessar o app e a senha sempre falha"
+  "description": "Não consigo acessar o app e a senha sempre falha"
 }
 ```
 
@@ -387,7 +387,7 @@ CreateComplaintQueueMessage payload = new CreateComplaintQueueMessage(
         LocalDate.of(1990, 5, 10),
         "maria.silva@example.com",
         LocalDate.of(2026, 3, 20),
-        "Nao consigo acessar o app e a senha sempre falha"
+        "Não consigo acessar o app e a senha sempre falha"
 );
 
 jmsTemplate.convertAndSend("complaint.received.queue", payload);
@@ -471,12 +471,13 @@ Validation is intentionally split into three levels:
 1. Edge validation
    - Bean Validation on REST DTOs and queue DTOs
 2. Application validation
-   - `CreateComplaintCommand`
-   - `SearchComplaintsQuery`
+   - input normalization in channel mappers when it improves request clarity
+   - semantic checks in use cases, such as date range validation and future complaint date rejection
 3. Domain validation
    - always-valid entities and value objects
 
 This keeps invalid state out of the system as early as possible while still protecting the core domain.
+Commands and queries remain lightweight and do not instantiate domain objects by themselves.
 
 ## Resilience Strategy
 
@@ -490,6 +491,8 @@ The goals are:
 - fail fast
 - reduce pressure on degraded infrastructure
 - keep retry logic out of controllers and domain objects
+
+Outbound adapter failures are not wrapped in artificial exceptions. Anything that is not mapped explicitly in the HTTP layer falls back to a friendly `500` response.
 
 Profiles are configured in `src/main/resources/application.yml` for:
 

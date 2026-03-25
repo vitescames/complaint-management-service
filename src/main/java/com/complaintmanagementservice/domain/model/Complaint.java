@@ -25,60 +25,26 @@ public final class Complaint {
     private final List<DomainEvent> domainEvents;
 
     private Complaint(Builder builder, List<DomainEvent> domainEvents) {
-        if (builder.id == null) {
-            throw new DomainValidationException("O identificador da reclamacao e obrigatorio");
-        }
-        if (builder.customer == null) {
-            throw new DomainValidationException("O cliente da reclamacao e obrigatorio");
-        }
-        if (builder.complaintDate == null) {
-            throw new DomainValidationException("A data da reclamacao e obrigatoria");
-        }
-        if (builder.complaintText == null) {
-            throw new DomainValidationException("O texto da reclamacao e obrigatorio");
-        }
-        if (builder.status == null) {
-            throw new DomainValidationException("O status da reclamacao e obrigatorio");
-        }
-        if (builder.registeredAt == null) {
-            throw new DomainValidationException("A data de registro da reclamacao e obrigatoria");
-        }
+        ComplaintId validatedId = requireId(builder.id);
+        Customer validatedCustomer = requireCustomer(builder.customer);
+        LocalDate validatedComplaintDate = requireComplaintDate(builder.complaintDate);
+        ComplaintText validatedComplaintText = requireComplaintText(builder.complaintText);
+        ComplaintStatus validatedStatus = requireStatus(builder.status);
+        Instant validatedRegisteredAt = requireRegisteredAt(builder.registeredAt);
 
-        this.id = builder.id;
-        this.customer = builder.customer;
-        this.complaintDate = builder.complaintDate;
-        this.complaintText = builder.complaintText;
+        this.id = validatedId;
+        this.customer = validatedCustomer;
+        this.complaintDate = validatedComplaintDate;
+        this.complaintText = validatedComplaintText;
         this.documentUrls = builder.documentUrls == null ? List.of() : List.copyOf(builder.documentUrls);
-        this.status = builder.status;
+        this.status = validatedStatus;
         this.categories = builder.categories == null ? Set.of() : Set.copyOf(new LinkedHashSet<>(builder.categories));
-        this.registeredAt = builder.registeredAt;
+        this.registeredAt = validatedRegisteredAt;
         this.domainEvents = new ArrayList<>(domainEvents);
     }
 
     public static Builder builder() {
         return new Builder();
-    }
-
-    public static Complaint reconstitute(
-            ComplaintId id,
-            Customer customer,
-            LocalDate complaintDate,
-            ComplaintText complaintText,
-            List<DocumentUrl> documentUrls,
-            ComplaintStatus status,
-            Set<Category> categories,
-            Instant registeredAt
-    ) {
-        return builder()
-                .id(id)
-                .customer(customer)
-                .complaintDate(complaintDate)
-                .complaintText(complaintText)
-                .documentUrls(documentUrls)
-                .status(status)
-                .categories(categories)
-                .registeredAt(registeredAt)
-                .buildReconstituted();
     }
 
     public ComplaintId id() {
@@ -181,7 +147,7 @@ public final class Complaint {
 
         public Complaint buildNew() {
             if (clock == null) {
-                throw new DomainValidationException("O relogio de criacao da reclamacao e obrigatorio");
+                throw new DomainValidationException("O relógio de criação da reclamação é obrigatório.");
             }
 
             ComplaintId complaintId = ComplaintId.newId();
@@ -195,5 +161,47 @@ public final class Complaint {
         public Complaint buildReconstituted() {
             return new Complaint(this, List.of());
         }
+    }
+
+    private ComplaintId requireId(ComplaintId id) {
+        if (id == null) {
+            throw new DomainValidationException("O identificador da reclamação é obrigatório.");
+        }
+        return id;
+    }
+
+    private Customer requireCustomer(Customer customer) {
+        if (customer == null) {
+            throw new DomainValidationException("O cliente da reclamação é obrigatório.");
+        }
+        return customer;
+    }
+
+    private LocalDate requireComplaintDate(LocalDate complaintDate) {
+        if (complaintDate == null) {
+            throw new DomainValidationException("A data da reclamação é obrigatória.");
+        }
+        return complaintDate;
+    }
+
+    private ComplaintText requireComplaintText(ComplaintText complaintText) {
+        if (complaintText == null) {
+            throw new DomainValidationException("O texto da reclamação é obrigatório.");
+        }
+        return complaintText;
+    }
+
+    private ComplaintStatus requireStatus(ComplaintStatus status) {
+        if (status == null) {
+            throw new DomainValidationException("O status da reclamação é obrigatório.");
+        }
+        return status;
+    }
+
+    private Instant requireRegisteredAt(Instant registeredAt) {
+        if (registeredAt == null) {
+            throw new DomainValidationException("A data de registro da reclamação é obrigatória.");
+        }
+        return registeredAt;
     }
 }

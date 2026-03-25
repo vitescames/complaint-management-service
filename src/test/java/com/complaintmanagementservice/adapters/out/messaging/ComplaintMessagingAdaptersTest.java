@@ -1,8 +1,6 @@
 package com.complaintmanagementservice.adapters.out.messaging;
 
 import com.complaintmanagementservice.TestFixtures;
-import com.complaintmanagementservice.application.exception.InfrastructureUnavailableException;
-import com.complaintmanagementservice.application.exception.MessagePublishingException;
 import com.complaintmanagementservice.infrastructure.config.MessagingProperties;
 import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
 import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
@@ -81,12 +79,13 @@ class ComplaintMessagingAdaptersTest {
                 new ComplaintMessagePayloadMapper(),
                 resilientExecutor
         );
+        var domainEvent = TestFixtures.complaintCreatedDomainEvent();
         doThrow(CallNotPermittedException.createCallNotPermittedException(
                 io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("messaging")
         )).when(resilientExecutor).executeRunnable(eq(ResilienceProfile.MESSAGING), any(Runnable.class));
 
-        assertThatThrownBy(() -> adapter.publish(TestFixtures.complaintCreatedDomainEvent()))
-                .isInstanceOf(InfrastructureUnavailableException.class);
+        assertThatThrownBy(() -> adapter.publish(domainEvent))
+                .isInstanceOf(CallNotPermittedException.class);
     }
 
     @Test
@@ -102,10 +101,12 @@ class ComplaintMessagingAdaptersTest {
                 new ComplaintMessagePayloadMapper(),
                 resilientExecutor
         );
+        var notification = TestFixtures.complaintSlaWarningNotification();
         doThrow(new IllegalStateException("broker down")).when(resilientExecutor)
                 .executeRunnable(eq(ResilienceProfile.MESSAGING), any(Runnable.class));
 
-        assertThatThrownBy(() -> adapter.publish(TestFixtures.complaintSlaWarningNotification()))
-                .isInstanceOf(MessagePublishingException.class);
+        assertThatThrownBy(() -> adapter.publish(notification))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("broker down");
     }
 }

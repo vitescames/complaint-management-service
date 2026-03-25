@@ -1,11 +1,14 @@
 package com.complaintmanagementservice.application.usecase;
 
 import com.complaintmanagementservice.TestFixtures;
+import com.complaintmanagementservice.application.command.CreateComplaintCommand;
 import com.complaintmanagementservice.application.event.DomainEventPublisher;
+import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
 import com.complaintmanagementservice.application.port.out.CategoryCatalogPort;
 import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPort;
 import com.complaintmanagementservice.domain.event.DomainEvent;
+import com.complaintmanagementservice.domain.exception.DomainValidationException;
 import com.complaintmanagementservice.domain.model.Complaint;
 import com.complaintmanagementservice.domain.service.ComplaintCategoryClassifier;
 import org.junit.jupiter.api.Test;
@@ -14,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,7 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class CreateComplaintServiceTest {
+class CreateComplaintUseCaseImplTest {
 
     @Mock
     private CategoryCatalogPort categoryCatalogPort;
@@ -71,9 +75,55 @@ class CreateComplaintServiceTest {
 
         assertThatThrownBy(() -> useCase.create(TestFixtures.createComplaintCommand()))
                 .isInstanceOf(ReferenceDataNotFoundException.class)
-                .hasMessage("O catalogo de categorias de reclamacao nao esta configurado");
+                .hasMessage("O catálogo de categorias de reclamação não está configurado.");
 
         verify(complaintRepositoryPort, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectFutureComplaintDate() {
+        CreateComplaintUseCaseImpl useCase = new CreateComplaintUseCaseImpl(
+                categoryCatalogPort,
+                complaintRepositoryPort,
+                domainEventPublisher,
+                new ComplaintCategoryClassifier(),
+                TestFixtures.FIXED_CLOCK
+        );
+        when(categoryCatalogPort.loadAll()).thenReturn(List.of(TestFixtures.acessoCategory()));
+
+        assertThatThrownBy(() -> useCase.create(CreateComplaintCommand.builder()
+                .customerCpf("52998224725")
+                .customerName("Maria Silva")
+                .customerBirthDate(LocalDate.of(1990, 6, 15))
+                .customerEmail("maria.silva@example.com")
+                .complaintCreatedDate(LocalDate.of(2026, 3, 24))
+                .complaintText("Meu login falha")
+                .build()))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .hasMessage("A data da reclamação não pode ser futura.");
+    }
+
+    @Test
+    void shouldDelegateNullComplaintDateValidationToDomain() {
+        CreateComplaintUseCaseImpl useCase = new CreateComplaintUseCaseImpl(
+                categoryCatalogPort,
+                complaintRepositoryPort,
+                domainEventPublisher,
+                new ComplaintCategoryClassifier(),
+                TestFixtures.FIXED_CLOCK
+        );
+        when(categoryCatalogPort.loadAll()).thenReturn(List.of(TestFixtures.acessoCategory()));
+
+        assertThatThrownBy(() -> useCase.create(CreateComplaintCommand.builder()
+                .customerCpf("52998224725")
+                .customerName("Maria Silva")
+                .customerBirthDate(LocalDate.of(1990, 6, 15))
+                .customerEmail("maria.silva@example.com")
+                .complaintCreatedDate(null)
+                .complaintText("Meu login falha")
+                .build()))
+                .isInstanceOf(DomainValidationException.class)
+                .hasMessage("A data da reclamação é obrigatória.");
     }
 
     @Test

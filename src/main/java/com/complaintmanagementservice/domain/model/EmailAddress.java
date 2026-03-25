@@ -11,11 +11,11 @@ public record EmailAddress(String value) {
 
     public EmailAddress {
         if (value == null) {
-            throw new DomainValidationException("O e-mail e obrigatorio");
+            throw new DomainValidationException("O e-mail é obrigatório.");
         }
         String normalized = value.trim().toLowerCase();
         if (!EMAIL_PATTERN.matcher(normalized).matches()) {
-            throw new DomainValidationException("E-mail invalido");
+            throw new DomainValidationException("E-mail inválido.");
         }
         value = normalized;
     }

@@ -19,8 +19,9 @@ class JacksonTextMessageConverterTest {
         jakarta.jms.Session session = mock(jakarta.jms.Session.class);
         jakarta.jms.TextMessage textMessage = mock(jakarta.jms.TextMessage.class);
         when(session.createTextMessage(anyString())).thenReturn(textMessage);
+        RecursivePayload payload = new RecursivePayload();
 
-        assertThatThrownBy(() -> converter.toMessage(new RecursivePayload(), session))
+        assertThatThrownBy(() -> converter.toMessage(payload, session))
                 .isInstanceOf(MessageConversionException.class)
                 .hasMessage("Unable to serialize JMS payload");
     }
@@ -58,7 +59,6 @@ class JacksonTextMessageConverterTest {
                 .hasMessage("Unable to deserialize JMS payload");
     }
 
-    @SuppressWarnings("unused")
     private static final class RecursivePayload {
         private final UUID id = UUID.randomUUID();
         private final RecursivePayload self = this;

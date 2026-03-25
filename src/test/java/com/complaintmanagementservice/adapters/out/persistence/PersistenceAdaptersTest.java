@@ -11,8 +11,6 @@ import com.complaintmanagementservice.adapters.out.persistence.repository.Catego
 import com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintJpaRepository;
 import com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintStatusJpaRepository;
 import com.complaintmanagementservice.adapters.out.persistence.repository.CustomerJpaRepository;
-import com.complaintmanagementservice.application.exception.InfrastructureUnavailableException;
-import com.complaintmanagementservice.application.exception.PersistenceOperationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
 import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -30,6 +28,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -79,13 +78,14 @@ class PersistenceAdaptersTest {
         )).when(resilientExecutor).executeSupplier(any(), any());
 
         assertThatThrownBy(adapter::loadAll)
-                .isInstanceOf(InfrastructureUnavailableException.class);
+                .isInstanceOf(CallNotPermittedException.class);
 
         org.mockito.Mockito.reset(resilientExecutor);
         doThrow(new IllegalStateException("catalog failure")).when(resilientExecutor).executeSupplier(any(), any());
 
         assertThatThrownBy(adapter::loadAll)
-                .isInstanceOf(PersistenceOperationException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("catalog failure");
     }
 
     @Test
@@ -107,7 +107,10 @@ class PersistenceAdaptersTest {
         when(complaintStatusJpaRepository.findById(1)).thenReturn(Optional.of(statusEntity));
         when(categoryJpaRepository.findAllById(any())).thenReturn(List.of(categoryEntity, new CategoryEntity(3L, "cobranca")));
         when(complaintJpaRepository.save(any())).thenReturn(savedEntity);
-        when(complaintJpaRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Sort.class)))
+        when(complaintJpaRepository.findAll(
+                org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<ComplaintEntity>>argThat(specification -> specification != null),
+                any(Sort.class)
+        ))
                 .thenReturn(List.of(savedEntity));
         when(complaintJpaRepository.findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(LocalDate.of(2026, 3, 16), 3))
                 .thenReturn(List.of(savedEntity));
@@ -136,7 +139,7 @@ class PersistenceAdaptersTest {
 
         assertThatThrownBy(() -> adapter.save(TestFixtures.complaint()))
                 .isInstanceOf(ReferenceDataNotFoundException.class)
-                .hasMessage("O status de referencia da reclamacao nao foi encontrado");
+                .hasMessage("O status de referência da reclamação não foi encontrado.");
     }
 
     @Test
@@ -154,7 +157,7 @@ class PersistenceAdaptersTest {
         )).when(resilientExecutor).executeSupplier(any(), any());
 
         assertThatThrownBy(() -> adapter.search(TestFixtures.searchQuery()))
-                .isInstanceOf(InfrastructureUnavailableException.class);
+                .isInstanceOf(CallNotPermittedException.class);
     }
 
     @Test
@@ -170,7 +173,8 @@ class PersistenceAdaptersTest {
         doThrow(new IllegalStateException("boom")).when(resilientExecutor).executeSupplier(any(), any());
 
         assertThatThrownBy(() -> adapter.findNonResolvedComplaintsCreatedOn(LocalDate.now()))
-                .isInstanceOf(PersistenceOperationException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("boom");
     }
 
     @Test
@@ -186,25 +190,27 @@ class PersistenceAdaptersTest {
 
         doThrow(new IllegalStateException("save failed")).when(resilientExecutor).executeSupplier(any(), any());
         assertThatThrownBy(() -> adapter.save(TestFixtures.complaint()))
-                .isInstanceOf(PersistenceOperationException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("save failed");
 
         org.mockito.Mockito.reset(resilientExecutor);
         doThrow(CallNotPermittedException.createCallNotPermittedException(
                 io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("save-unavailable")
         )).when(resilientExecutor).executeSupplier(any(), any());
         assertThatThrownBy(() -> adapter.save(TestFixtures.complaint()))
-                .isInstanceOf(InfrastructureUnavailableException.class);
+                .isInstanceOf(CallNotPermittedException.class);
 
         org.mockito.Mockito.reset(resilientExecutor);
         doThrow(new IllegalStateException("search failed")).when(resilientExecutor).executeSupplier(any(), any());
         assertThatThrownBy(() -> adapter.search(TestFixtures.searchQuery()))
-                .isInstanceOf(PersistenceOperationException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("search failed");
 
         org.mockito.Mockito.reset(resilientExecutor);
         doThrow(CallNotPermittedException.createCallNotPermittedException(
                 io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("find-non-resolved")
         )).when(resilientExecutor).executeSupplier(any(), any());
         assertThatThrownBy(() -> adapter.findNonResolvedComplaintsCreatedOn(LocalDate.now()))
-                .isInstanceOf(InfrastructureUnavailableException.class);
+                .isInstanceOf(CallNotPermittedException.class);
     }
 }
