@@ -2,7 +2,6 @@ package com.complaintmanagementservice.application.command;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public final class CreateComplaintCommand {
@@ -22,7 +21,7 @@ public final class CreateComplaintCommand {
         this.customerEmail = builder.customerEmail;
         this.complaintCreatedDate = builder.complaintCreatedDate;
         this.complaintText = builder.complaintText;
-        this.documentUrls = Collections.unmodifiableList(new ArrayList<>(builder.documentUrls));
+        this.documentUrls = List.copyOf(builder.documentUrls);
     }
 
     public static Builder builder() {

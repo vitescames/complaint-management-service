@@ -1,7 +1,10 @@
 package com.complaintmanagementservice.adapters.out.persistence;
 
 import com.complaintmanagementservice.TestFixtures;
+import com.complaintmanagementservice.adapters.out.persistence.entity.CategoryEntity;
 import com.complaintmanagementservice.adapters.out.persistence.entity.ComplaintEntity;
+import com.complaintmanagementservice.adapters.out.persistence.entity.ComplaintStatusEntity;
+import com.complaintmanagementservice.adapters.out.persistence.entity.CustomerEntity;
 import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -30,16 +33,16 @@ class ComplaintPersistenceSpecificationTest {
         SearchComplaintsQuery query = TestFixtures.searchQuery();
         Specification<ComplaintEntity> specification = ComplaintSpecifications.from(query);
 
-        Root root = mock(Root.class);
-        CriteriaQuery criteriaQuery = mock(CriteriaQuery.class);
+        Root<ComplaintEntity> root = mockRoot();
+        CriteriaQuery<Object> criteriaQuery = mockCriteriaQuery();
         CriteriaBuilder criteriaBuilder = mock(CriteriaBuilder.class);
-        Path customerPath = mock(Path.class);
-        Path cpfPath = mock(Path.class);
-        Join categoriesJoin = mock(Join.class);
-        Path categoryNamePath = mock(Path.class);
-        Path statusPath = mock(Path.class);
-        Path statusIdPath = mock(Path.class);
-        Path complaintDatePath = mock(Path.class);
+        Path<CustomerEntity> customerPath = mockPath();
+        Path<String> cpfPath = mockPath();
+        Join<ComplaintEntity, CategoryEntity> categoriesJoin = mockJoin();
+        Path<String> categoryNamePath = mockPath();
+        Path<ComplaintStatusEntity> statusPath = mockPath();
+        Path<Integer> statusIdPath = mockPath();
+        Path<LocalDate> complaintDatePath = mockPath();
         Predicate customerPredicate = mock(Predicate.class);
         Predicate categoryPredicate = mock(Predicate.class);
         Predicate statusPredicate = mock(Predicate.class);
@@ -47,17 +50,17 @@ class ComplaintPersistenceSpecificationTest {
         Predicate endDatePredicate = mock(Predicate.class);
         Predicate finalPredicate = mock(Predicate.class);
 
-        when(root.get("customer")).thenReturn(customerPath);
-        when(customerPath.get("cpf")).thenReturn(cpfPath);
+        when(root.<CustomerEntity>get("customer")).thenReturn(customerPath);
+        when(customerPath.<String>get("cpf")).thenReturn(cpfPath);
         when(criteriaBuilder.equal(cpfPath, "52998224725")).thenReturn(customerPredicate);
-        when(root.join("categories")).thenReturn(categoriesJoin);
-        when(categoriesJoin.get("name")).thenReturn(categoryNamePath);
+        when(root.<ComplaintEntity, CategoryEntity>join("categories")).thenReturn(categoriesJoin);
+        when(categoriesJoin.<String>get("name")).thenReturn(categoryNamePath);
         when(categoryNamePath.in(query.categoryNames())).thenReturn(categoryPredicate);
         when(criteriaQuery.distinct(true)).thenReturn(criteriaQuery);
-        when(root.get("status")).thenReturn(statusPath);
-        when(statusPath.get("id")).thenReturn(statusIdPath);
+        when(root.<ComplaintStatusEntity>get("status")).thenReturn(statusPath);
+        when(statusPath.<Integer>get("id")).thenReturn(statusIdPath);
         when(statusIdPath.in(List.of(1))).thenReturn(statusPredicate);
-        when(root.get("complaintDate")).thenReturn(complaintDatePath);
+        when(root.<LocalDate>get("complaintDate")).thenReturn(complaintDatePath);
         when(criteriaBuilder.greaterThanOrEqualTo(complaintDatePath, LocalDate.of(2026, 3, 1))).thenReturn(startDatePredicate);
         when(criteriaBuilder.lessThanOrEqualTo(complaintDatePath, LocalDate.of(2026, 3, 31))).thenReturn(endDatePredicate);
         when(criteriaBuilder.and(any(Predicate[].class))).thenReturn(finalPredicate);
@@ -75,8 +78,8 @@ class ComplaintPersistenceSpecificationTest {
         SearchComplaintsQuery query = SearchComplaintsQuery.builder().build();
         Specification<ComplaintEntity> specification = ComplaintSpecifications.from(query);
 
-        Root root = mock(Root.class);
-        CriteriaQuery criteriaQuery = mock(CriteriaQuery.class);
+        Root<ComplaintEntity> root = mockRoot();
+        CriteriaQuery<Object> criteriaQuery = mockCriteriaQuery();
         CriteriaBuilder criteriaBuilder = mock(CriteriaBuilder.class);
         Predicate finalPredicate = mock(Predicate.class);
 
@@ -87,5 +90,25 @@ class ComplaintPersistenceSpecificationTest {
         verify(root, never()).join(anyString());
         verify(root, never()).get(anyString());
         verify(criteriaQuery, never()).distinct(true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Root<ComplaintEntity> mockRoot() {
+        return mock(Root.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> CriteriaQuery<T> mockCriteriaQuery() {
+        return mock(CriteriaQuery.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Path<T> mockPath() {
+        return mock(Path.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <X, Y> Join<X, Y> mockJoin() {
+        return mock(Join.class);
     }
 }

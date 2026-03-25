@@ -2,7 +2,6 @@ package com.complaintmanagementservice.application.query;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public final class SearchComplaintsQuery {
@@ -15,8 +14,8 @@ public final class SearchComplaintsQuery {
 
     private SearchComplaintsQuery(Builder builder) {
         this.customerCpf = builder.customerCpf;
-        this.categoryNames = Collections.unmodifiableList(new ArrayList<>(builder.categoryNames));
-        this.statusIds = Collections.unmodifiableList(new ArrayList<>(builder.statusIds));
+        this.categoryNames = List.copyOf(builder.categoryNames);
+        this.statusIds = List.copyOf(builder.statusIds);
         this.startDate = builder.startDate;
         this.endDate = builder.endDate;
     }

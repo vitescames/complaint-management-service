@@ -7,6 +7,7 @@ import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -85,13 +86,15 @@ class ApplicationCommandAndModelTest {
     void shouldExposeImmutableCommandAndQueryCollections() {
         CreateComplaintCommand command = TestFixtures.createComplaintCommand();
         SearchComplaintsQuery query = TestFixtures.searchQuery();
+        List<String> documentUrls = new ArrayList<>(command.documentUrls());
+        List<String> categoryNames = new ArrayList<>(query.categoryNames());
 
-        assertThat(command.documentUrls()).isEqualTo(List.of("https://example.com/doc-1"));
-        assertThat(query.categoryNames()).containsExactly("acesso", "cobranca");
+        assertThat(documentUrls).isEqualTo(List.of("https://example.com/doc-1"));
+        assertThat(categoryNames).containsExactly("acesso", "cobranca");
         assertThat(query.statusIds()).containsExactly(1);
-        assertThatThrownBy(() -> command.documentUrls().add("https://example.com/doc-2"))
+        assertThatThrownBy(() -> documentUrls.add("https://example.com/doc-2"))
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> query.categoryNames().add("fraude"))
+        assertThatThrownBy(() -> categoryNames.add("fraude"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 }

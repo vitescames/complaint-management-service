@@ -72,8 +72,9 @@ class CreateComplaintUseCaseImplTest {
                 TestFixtures.FIXED_CLOCK
         );
         when(categoryCatalogPort.loadAll()).thenReturn(List.of());
+        CreateComplaintCommand command = TestFixtures.createComplaintCommand();
 
-        assertThatThrownBy(() -> useCase.create(TestFixtures.createComplaintCommand()))
+        assertThatThrownBy(() -> useCase.create(command))
                 .isInstanceOf(ReferenceDataNotFoundException.class)
                 .hasMessage("O catálogo de categorias de reclamação não está configurado.");
 
@@ -90,15 +91,16 @@ class CreateComplaintUseCaseImplTest {
                 TestFixtures.FIXED_CLOCK
         );
         when(categoryCatalogPort.loadAll()).thenReturn(List.of(TestFixtures.acessoCategory()));
-
-        assertThatThrownBy(() -> useCase.create(CreateComplaintCommand.builder()
+        CreateComplaintCommand command = CreateComplaintCommand.builder()
                 .customerCpf("52998224725")
                 .customerName("Maria Silva")
                 .customerBirthDate(LocalDate.of(1990, 6, 15))
                 .customerEmail("maria.silva@example.com")
                 .complaintCreatedDate(LocalDate.of(2026, 3, 24))
                 .complaintText("Meu login falha")
-                .build()))
+                .build();
+
+        assertThatThrownBy(() -> useCase.create(command))
                 .isInstanceOf(BusinessRuleViolationException.class)
                 .hasMessage("A data da reclamação não pode ser futura.");
     }
@@ -113,15 +115,16 @@ class CreateComplaintUseCaseImplTest {
                 TestFixtures.FIXED_CLOCK
         );
         when(categoryCatalogPort.loadAll()).thenReturn(List.of(TestFixtures.acessoCategory()));
-
-        assertThatThrownBy(() -> useCase.create(CreateComplaintCommand.builder()
+        CreateComplaintCommand command = CreateComplaintCommand.builder()
                 .customerCpf("52998224725")
                 .customerName("Maria Silva")
                 .customerBirthDate(LocalDate.of(1990, 6, 15))
                 .customerEmail("maria.silva@example.com")
                 .complaintCreatedDate(null)
                 .complaintText("Meu login falha")
-                .build()))
+                .build();
+
+        assertThatThrownBy(() -> useCase.create(command))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("A data da reclamação é obrigatória.");
     }
@@ -137,8 +140,9 @@ class CreateComplaintUseCaseImplTest {
         );
         when(categoryCatalogPort.loadAll()).thenReturn(List.of(TestFixtures.acessoCategory()));
         doThrow(new IllegalStateException("database unavailable")).when(complaintRepositoryPort).save(any(Complaint.class));
+        CreateComplaintCommand command = TestFixtures.createComplaintCommand();
 
-        assertThatThrownBy(() -> useCase.create(TestFixtures.createComplaintCommand()))
+        assertThatThrownBy(() -> useCase.create(command))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("database unavailable");
 
