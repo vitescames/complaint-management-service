@@ -2,15 +2,15 @@ package com.complaintmanagementservice.domain.model;
 
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
 
-import java.util.Objects;
-
 public record CustomerName(String value) {
 
     public CustomerName {
-        Objects.requireNonNull(value, "value must not be null");
+        if (value == null) {
+            throw new DomainValidationException("O nome do cliente e obrigatorio");
+        }
         String normalized = value.trim();
         if (normalized.isBlank() || normalized.length() > 120) {
-            throw new DomainValidationException("Customer name must contain between 1 and 120 characters");
+            throw new DomainValidationException("O nome do cliente deve ter entre 1 e 120 caracteres");
         }
         value = normalized;
     }

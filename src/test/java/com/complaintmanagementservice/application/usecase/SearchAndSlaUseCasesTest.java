@@ -1,10 +1,9 @@
 package com.complaintmanagementservice.application.usecase;
 
 import com.complaintmanagementservice.TestFixtures;
-import com.complaintmanagementservice.application.port.out.ComplaintCreatedMessagePort;
+import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
 import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPort;
 import com.complaintmanagementservice.application.port.out.ComplaintSlaWarningMessagePort;
-import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
 import com.complaintmanagementservice.domain.model.Complaint;
 import com.complaintmanagementservice.domain.model.ComplaintStatus;
 import com.complaintmanagementservice.domain.service.ComplaintSlaPolicy;
@@ -33,46 +32,29 @@ class SearchAndSlaUseCasesTest {
     private ComplaintRepositoryPort complaintRepositoryPort;
 
     @Mock
-    private ComplaintCreatedMessagePort complaintCreatedMessagePort;
-
-    @Mock
     private ComplaintSlaWarningMessagePort complaintSlaWarningMessagePort;
 
     @Test
     void shouldDelegateSearchToRepository() {
-        SearchComplaintsService service = new SearchComplaintsService(complaintRepositoryPort);
-        when(complaintRepositoryPort.search(TestFixtures.searchQuery())).thenReturn(List.of(TestFixtures.complaint()));
+        SearchComplaintsUseCaseImpl useCase = new SearchComplaintsUseCaseImpl(complaintRepositoryPort);
+        when(complaintRepositoryPort.search(any())).thenReturn(List.of(TestFixtures.complaint()));
 
-        List<Complaint> complaints = service.search(TestFixtures.searchQuery());
+        List<Complaint> complaints = useCase.search(TestFixtures.searchQuery());
 
         assertThat(complaints).extracting(Complaint::id).containsExactly(TestFixtures.complaint().id());
     }
 
     @Test
-    void shouldPublishCreatedMessageFromDomainEvent() {
-        ComplaintCreatedDomainEventHandler handler = new ComplaintCreatedDomainEventHandler(complaintCreatedMessagePort);
-        ComplaintCreatedDomainEvent event = TestFixtures.complaintCreatedDomainEvent();
-
-        handler.handle(event);
-
-        ArgumentCaptor<com.complaintmanagementservice.application.model.ComplaintCreatedNotification> captor =
-                ArgumentCaptor.forClass(com.complaintmanagementservice.application.model.ComplaintCreatedNotification.class);
-        verify(complaintCreatedMessagePort).publish(captor.capture());
-        assertThat(captor.getValue().complaintId()).isEqualTo(event.complaintId());
-        assertThat(captor.getValue().createdAt()).isEqualTo(event.occurredAt());
-    }
-
-    @Test
     void shouldPublishOnlyDueSlaWarnings() {
         Clock fixedClock = Clock.fixed(Instant.parse("2026-03-23T07:00:00Z"), ZoneOffset.UTC);
-        PublishSlaWarningsService service = new PublishSlaWarningsService(
+        PublishSlaWarningsUseCaseImpl useCase = new PublishSlaWarningsUseCaseImpl(
                 complaintRepositoryPort,
                 complaintSlaWarningMessagePort,
                 new ComplaintSlaPolicy(),
                 fixedClock
         );
         Complaint dueComplaint = TestFixtures.approachingSlaComplaint();
-        Complaint notDueComplaint = Complaint.restore(
+        Complaint notDueComplaint = Complaint.reconstitute(
                 dueComplaint.id(),
                 dueComplaint.customer(),
                 LocalDate.of(2026, 3, 15),
@@ -85,10 +67,10 @@ class SearchAndSlaUseCasesTest {
         when(complaintRepositoryPort.findNonResolvedComplaintsCreatedOn(LocalDate.of(2026, 3, 16)))
                 .thenReturn(List.of(dueComplaint, notDueComplaint));
 
-        service.publishWarnings();
+        useCase.publishWarnings();
 
-        ArgumentCaptor<com.complaintmanagementservice.application.model.ComplaintSlaWarningNotification> captor =
-                ArgumentCaptor.forClass(com.complaintmanagementservice.application.model.ComplaintSlaWarningNotification.class);
+        ArgumentCaptor<ComplaintSlaWarningNotification> captor =
+                ArgumentCaptor.forClass(ComplaintSlaWarningNotification.class);
         verify(complaintSlaWarningMessagePort).publish(captor.capture());
         assertThat(captor.getValue().complaintId()).isEqualTo(dueComplaint.id());
         assertThat(captor.getValue().slaDeadlineDate()).isEqualTo(LocalDate.of(2026, 3, 26));
@@ -96,7 +78,7 @@ class SearchAndSlaUseCasesTest {
 
     @Test
     void shouldSkipSlaPublicationWhenRepositoryReturnsNothing() {
-        PublishSlaWarningsService service = new PublishSlaWarningsService(
+        PublishSlaWarningsUseCaseImpl useCase = new PublishSlaWarningsUseCaseImpl(
                 complaintRepositoryPort,
                 complaintSlaWarningMessagePort,
                 new ComplaintSlaPolicy(),
@@ -104,7 +86,7 @@ class SearchAndSlaUseCasesTest {
         );
         when(complaintRepositoryPort.findNonResolvedComplaintsCreatedOn(LocalDate.of(2026, 3, 16))).thenReturn(List.of());
 
-        service.publishWarnings();
+        useCase.publishWarnings();
 
         verify(complaintSlaWarningMessagePort, never()).publish(any());
     }

@@ -1,6 +1,6 @@
 package com.complaintmanagementservice.application.port.out;
 
-import com.complaintmanagementservice.application.model.ComplaintSlaWarningNotification;
+import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
 
 public interface ComplaintSlaWarningMessagePort {
 

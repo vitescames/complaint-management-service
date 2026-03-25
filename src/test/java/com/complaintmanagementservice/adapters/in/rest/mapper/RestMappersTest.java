@@ -33,9 +33,9 @@ class RestMappersTest {
 
         var command = createComplaintRestRequestMapper.toCommand(request);
 
-        assertThat(command.customerCpf().value()).isEqualTo("52998224725");
+        assertThat(command.customerCpf()).isEqualTo("529.982.247-25");
         assertThat(command.documentUrls()).hasSize(1);
-        assertThat(command.complaintText().value()).isEqualTo("Meu app travando");
+        assertThat(command.complaintText()).isEqualTo("Meu app travando");
 
         CreateComplaintRestRequest requestWithoutDocuments = new CreateComplaintRestRequest(
                 new CreateComplaintRestRequest.CustomerPayload(
@@ -76,19 +76,19 @@ class RestMappersTest {
                 LocalDate.of(2026, 3, 31)
         );
 
-        assertThat(query.customerCpf()).contains(TestFixtures.customer().cpf());
+        assertThat(query.customerCpf()).isEqualTo("52998224725");
         assertThat(query.categoryNames()).containsExactly("acesso");
-        assertThat(query.statuses()).containsExactly(ComplaintStatus.PENDING);
-        assertThat(query.startDate()).contains(LocalDate.of(2026, 3, 1));
-        assertThat(query.endDate()).contains(LocalDate.of(2026, 3, 31));
+        assertThat(query.statusIds()).containsExactly(ComplaintStatus.PENDING.id());
+        assertThat(query.startDate()).isEqualTo(LocalDate.of(2026, 3, 1));
+        assertThat(query.endDate()).isEqualTo(LocalDate.of(2026, 3, 31));
 
         var emptyQuery = searchComplaintsQueryMapper.toQuery(null, null, null, null, null);
-        assertThat(emptyQuery.customerCpf()).isEmpty();
+        assertThat(emptyQuery.customerCpf()).isNull();
         assertThat(emptyQuery.categoryNames()).isEmpty();
-        assertThat(emptyQuery.statuses()).isEmpty();
+        assertThat(emptyQuery.statusIds()).isEmpty();
 
         var blankCpfQuery = searchComplaintsQueryMapper.toQuery(" ", List.of("acesso"), null, null, LocalDate.of(2026, 3, 31));
-        assertThat(blankCpfQuery.customerCpf()).isEmpty();
-        assertThat(blankCpfQuery.endDate()).contains(LocalDate.of(2026, 3, 31));
+        assertThat(blankCpfQuery.customerCpf()).isNull();
+        assertThat(blankCpfQuery.endDate()).isEqualTo(LocalDate.of(2026, 3, 31));
     }
 }

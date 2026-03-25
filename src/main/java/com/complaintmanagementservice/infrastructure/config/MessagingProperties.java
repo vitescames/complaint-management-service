@@ -5,18 +5,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "application.messaging")
 public record MessagingProperties(
         String brokerName,
-        QueueProperties queues,
-        RedeliveryProperties redelivery
+        QueueNames queues,
+        RedeliverySettings redelivery
 ) {
 
-    public record QueueProperties(
+    public record QueueNames(
             String complaintReceived,
             String complaintCreated,
             String complaintSlaWarning
     ) {
     }
 
-    public record RedeliveryProperties(
+    public record RedeliverySettings(
             int maximumRedeliveries,
             long initialDelayMillis,
             double backoffMultiplier

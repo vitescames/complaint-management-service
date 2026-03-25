@@ -2,10 +2,7 @@ package com.complaintmanagementservice.adapters.out.persistence;
 
 import com.complaintmanagementservice.TestFixtures;
 import com.complaintmanagementservice.adapters.out.persistence.entity.ComplaintEntity;
-import com.complaintmanagementservice.adapters.out.persistence.mapper.CategoryPersistenceMapper;
-import com.complaintmanagementservice.adapters.out.persistence.mapper.ComplaintPersistenceMapper;
 import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Join;
@@ -14,11 +11,9 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,17 +28,8 @@ class ComplaintPersistenceSpecificationTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldBuildSpecificationUsingAllFilters() {
-        ComplaintPersistenceAdapter adapter = new ComplaintPersistenceAdapter(
-                mock(com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintJpaRepository.class),
-                mock(com.complaintmanagementservice.adapters.out.persistence.repository.CustomerJpaRepository.class),
-                mock(com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintStatusJpaRepository.class),
-                mock(com.complaintmanagementservice.adapters.out.persistence.repository.CategoryJpaRepository.class),
-                new ComplaintPersistenceMapper(new CategoryPersistenceMapper()),
-                mock(ResilientExecutor.class)
-        );
         SearchComplaintsQuery query = TestFixtures.searchQuery();
-        Specification<ComplaintEntity> specification =
-                (Specification<ComplaintEntity>) ReflectionTestUtils.invokeMethod(adapter, "buildSpecification", query);
+        Specification<ComplaintEntity> specification = ComplaintSpecifications.from(query);
 
         Root<ComplaintEntity> root = mock(Root.class);
         CriteriaQuery criteriaQuery = mock(CriteriaQuery.class);
@@ -88,23 +74,8 @@ class ComplaintPersistenceSpecificationTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldBuildSpecificationWithoutFilters() {
-        ComplaintPersistenceAdapter adapter = new ComplaintPersistenceAdapter(
-                mock(com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintJpaRepository.class),
-                mock(com.complaintmanagementservice.adapters.out.persistence.repository.CustomerJpaRepository.class),
-                mock(com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintStatusJpaRepository.class),
-                mock(com.complaintmanagementservice.adapters.out.persistence.repository.CategoryJpaRepository.class),
-                new ComplaintPersistenceMapper(new CategoryPersistenceMapper()),
-                mock(ResilientExecutor.class)
-        );
-        SearchComplaintsQuery query = new SearchComplaintsQuery(
-                Optional.empty(),
-                List.of(),
-                List.of(),
-                Optional.empty(),
-                Optional.empty()
-        );
-        Specification<ComplaintEntity> specification =
-                (Specification<ComplaintEntity>) ReflectionTestUtils.invokeMethod(adapter, "buildSpecification", query);
+        SearchComplaintsQuery query = SearchComplaintsQuery.builder().build();
+        Specification<ComplaintEntity> specification = ComplaintSpecifications.from(query);
 
         Root<ComplaintEntity> root = mock(Root.class);
         CriteriaQuery criteriaQuery = mock(CriteriaQuery.class);

@@ -4,7 +4,6 @@ import com.complaintmanagementservice.domain.exception.DomainValidationException
 
 import java.text.Normalizer;
 import java.util.Locale;
-import java.util.Objects;
 
 public final class CategoryKeyword {
 
@@ -13,10 +12,16 @@ public final class CategoryKeyword {
     private final String normalizedValue;
 
     public CategoryKeyword(Long id, String value) {
-        this.id = Objects.requireNonNull(id, "id must not be null");
-        this.value = Objects.requireNonNull(value, "value must not be null").trim();
+        if (id == null) {
+            throw new DomainValidationException("O identificador da palavra-chave da categoria e obrigatorio");
+        }
+        if (value == null) {
+            throw new DomainValidationException("A palavra-chave da categoria e obrigatoria");
+        }
+        this.id = id;
+        this.value = value.trim();
         if (this.value.isBlank()) {
-            throw new DomainValidationException("Category keyword must not be blank");
+            throw new DomainValidationException("A palavra-chave da categoria e obrigatoria");
         }
         this.normalizedValue = normalize(this.value);
     }

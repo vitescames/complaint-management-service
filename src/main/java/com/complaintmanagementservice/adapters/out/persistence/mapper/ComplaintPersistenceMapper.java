@@ -14,11 +14,12 @@ import com.complaintmanagementservice.domain.model.Customer;
 import com.complaintmanagementservice.domain.model.CustomerName;
 import com.complaintmanagementservice.domain.model.DocumentUrl;
 import com.complaintmanagementservice.domain.model.EmailAddress;
+import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Component
 public class ComplaintPersistenceMapper {
 
     private final CategoryPersistenceMapper categoryPersistenceMapper;
@@ -60,22 +61,22 @@ public class ComplaintPersistenceMapper {
     }
 
     public Complaint toDomain(ComplaintEntity entity) {
-        return Complaint.restore(
-                new ComplaintId(entity.getId()),
-                new Customer(
-                        new Cpf(entity.getCustomer().getCpf()),
-                        new CustomerName(entity.getCustomer().getName()),
-                        entity.getCustomer().getBirthDate(),
-                        new EmailAddress(entity.getCustomer().getEmail())
-                ),
-                entity.getComplaintDate(),
-                new ComplaintText(entity.getComplaintText()),
-                entity.getDocuments().stream().map(document -> new DocumentUrl(document.getDocumentUrl())).toList(),
-                ComplaintStatus.fromId(entity.getStatus().getId()),
-                entity.getCategories().stream()
+        return Complaint.builder()
+                .id(new ComplaintId(entity.getId()))
+                .customer(Customer.builder()
+                        .cpf(new Cpf(entity.getCustomer().getCpf()))
+                        .name(new CustomerName(entity.getCustomer().getName()))
+                        .birthDate(entity.getCustomer().getBirthDate())
+                        .emailAddress(new EmailAddress(entity.getCustomer().getEmail()))
+                        .build())
+                .complaintDate(entity.getComplaintDate())
+                .complaintText(new ComplaintText(entity.getComplaintText()))
+                .documentUrls(entity.getDocuments().stream().map(document -> new DocumentUrl(document.getDocumentUrl())).toList())
+                .status(ComplaintStatus.fromId(entity.getStatus().getId()))
+                .categories(entity.getCategories().stream()
                         .map(categoryPersistenceMapper::toComplaintCategory)
-                        .collect(Collectors.toCollection(java.util.LinkedHashSet::new)),
-                entity.getRegisteredAt()
-        );
+                        .collect(Collectors.toCollection(java.util.LinkedHashSet::new)))
+                .registeredAt(entity.getRegisteredAt())
+                .buildReconstituted();
     }
 }

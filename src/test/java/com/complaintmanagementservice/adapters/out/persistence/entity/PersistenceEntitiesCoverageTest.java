@@ -13,6 +13,7 @@ class PersistenceEntitiesCoverageTest {
         CategoryEntity categoryEntity = instantiate(CategoryEntity.class);
         CategoryKeywordEntity categoryKeywordEntity = instantiate(CategoryKeywordEntity.class);
         ComplaintEntity complaintEntity = instantiate(ComplaintEntity.class);
+        ComplaintDocumentEntity complaintDocumentEntity = instantiate(ComplaintDocumentEntity.class);
         ComplaintStatusEntity complaintStatusEntity = instantiate(ComplaintStatusEntity.class);
         CustomerEntity customerEntity = instantiate(CustomerEntity.class);
 
@@ -30,12 +31,21 @@ class PersistenceEntitiesCoverageTest {
         assertThat(complaintEntity.getRegisteredAt()).isNull();
         assertThat(complaintEntity.getCategories()).isEmpty();
         assertThat(complaintEntity.getDocuments()).isEmpty();
+        assertThat(complaintDocumentEntity.getId()).isNull();
+        assertThat(complaintDocumentEntity.getComplaint()).isNull();
+        assertThat(complaintDocumentEntity.getDocumentUrl()).isNull();
         assertThat(complaintStatusEntity.getId()).isNull();
         assertThat(complaintStatusEntity.getName()).isNull();
         assertThat(customerEntity.getCpf()).isNull();
         assertThat(customerEntity.getName()).isNull();
         assertThat(customerEntity.getBirthDate()).isNull();
         assertThat(customerEntity.getEmail()).isNull();
+
+        ComplaintDocumentEntity mappedDocument = new ComplaintDocumentEntity("https://example.com/doc");
+        mappedDocument.setComplaint(complaintEntity);
+
+        assertThat(mappedDocument.getDocumentUrl()).isEqualTo("https://example.com/doc");
+        assertThat(mappedDocument.getComplaint()).isEqualTo(complaintEntity);
     }
 
     private <T> T instantiate(Class<T> type) throws Exception {

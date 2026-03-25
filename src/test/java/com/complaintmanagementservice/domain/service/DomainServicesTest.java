@@ -21,17 +21,21 @@ class DomainServicesTest {
 
     @Test
     void shouldClassifyComplaintUsingNormalizedKeywords() {
-        Category fraude = new Category(6L, "fraude", Set.of(
-                new CategoryKeyword(18L, "nao reconhece divida"),
-                new CategoryKeyword(19L, "fraude")
-        ));
+        Category fraude = Category.builder()
+                .id(6L)
+                .name("fraude")
+                .keywords(Set.of(
+                        new CategoryKeyword(18L, "nao reconhece divida"),
+                        new CategoryKeyword(19L, "fraude")
+                ))
+                .build();
 
         Set<Category> categories = complaintCategoryClassifier.classify(
-                new ComplaintText("Nao reconheço divida na fatura e suspeito de fraude no aplicativo"),
+                new ComplaintText("Nao reconheco divida na fatura e suspeito de fraude no aplicativo"),
                 List.of(TestFixtures.cobrancaCategory(), fraude, TestFixtures.acessoCategory())
         );
 
-        assertThat(categories).extracting(Category::name).containsExactlyInAnyOrder("cobrança", "fraude");
+        assertThat(categories).extracting(Category::name).containsExactlyInAnyOrder("cobranca", "fraude");
     }
 
     @Test
@@ -53,7 +57,7 @@ class DomainServicesTest {
                 .isEqualTo(LocalDate.of(2026, 3, 16));
         assertThat(complaintSlaPolicy.isWarningDue(complaint, LocalDate.of(2026, 3, 23))).isTrue();
 
-        Complaint resolvedComplaint = Complaint.restore(
+        Complaint resolvedComplaint = Complaint.reconstitute(
                 complaint.id(),
                 complaint.customer(),
                 complaint.complaintDate(),

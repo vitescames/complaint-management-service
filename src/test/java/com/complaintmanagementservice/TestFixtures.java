@@ -1,8 +1,7 @@
 package com.complaintmanagementservice;
 
 import com.complaintmanagementservice.application.command.CreateComplaintCommand;
-import com.complaintmanagementservice.application.model.ComplaintCreatedNotification;
-import com.complaintmanagementservice.application.model.ComplaintSlaWarningNotification;
+import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
 import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
 import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
 import com.complaintmanagementservice.domain.model.Category;
@@ -22,7 +21,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,31 +32,39 @@ public final class TestFixtures {
     }
 
     public static Customer customer() {
-        return new Customer(
-                new Cpf("52998224725"),
-                new CustomerName("Maria Silva"),
-                LocalDate.of(1990, 6, 15),
-                new EmailAddress("maria.silva@example.com")
-        );
+        return Customer.builder()
+                .cpf(new Cpf("52998224725"))
+                .name(new CustomerName("Maria Silva"))
+                .birthDate(LocalDate.of(1990, 6, 15))
+                .emailAddress(new EmailAddress("maria.silva@example.com"))
+                .build();
     }
 
     public static Category acessoCategory() {
-        return new Category(4L, "acesso", Set.of(
-                new CategoryKeyword(11L, "acessar"),
-                new CategoryKeyword(12L, "login"),
-                new CategoryKeyword(13L, "senha")
-        ));
+        return Category.builder()
+                .id(4L)
+                .name("acesso")
+                .keywords(Set.of(
+                        new CategoryKeyword(11L, "acessar"),
+                        new CategoryKeyword(12L, "login"),
+                        new CategoryKeyword(13L, "senha")
+                ))
+                .build();
     }
 
     public static Category cobrancaCategory() {
-        return new Category(3L, "cobrança", Set.of(
-                new CategoryKeyword(7L, "fatura"),
-                new CategoryKeyword(8L, "cobrança")
-        ));
+        return Category.builder()
+                .id(3L)
+                .name("cobranca")
+                .keywords(Set.of(
+                        new CategoryKeyword(7L, "fatura"),
+                        new CategoryKeyword(8L, "cobranca")
+                ))
+                .build();
     }
 
     public static Complaint complaint() {
-        return Complaint.restore(
+        return Complaint.reconstitute(
                 new ComplaintId(UUID.fromString("11111111-1111-1111-1111-111111111111")),
                 customer(),
                 LocalDate.of(2026, 3, 20),
@@ -71,40 +77,36 @@ public final class TestFixtures {
     }
 
     public static Complaint createdComplaint() {
-        return Complaint.create(
-                customer(),
-                LocalDate.of(2026, 3, 20),
-                new ComplaintText("Nao consigo acessar o app e a fatura esta indevida"),
-                List.of(new DocumentUrl("https://example.com/doc-1")),
-                Set.of(acessoCategory(), cobrancaCategory()),
-                FIXED_CLOCK
-        );
+        return Complaint.builder()
+                .customer(customer())
+                .complaintDate(LocalDate.of(2026, 3, 20))
+                .complaintText(new ComplaintText("Nao consigo acessar o app e a fatura esta indevida"))
+                .documentUrls(List.of(new DocumentUrl("https://example.com/doc-1")))
+                .categories(Set.of(acessoCategory(), cobrancaCategory()))
+                .clock(FIXED_CLOCK)
+                .buildNew();
     }
 
     public static CreateComplaintCommand createComplaintCommand() {
-        return new CreateComplaintCommand(
-                customer().cpf(),
-                customer().name(),
-                customer().birthDate(),
-                customer().emailAddress(),
-                LocalDate.of(2026, 3, 20),
-                new ComplaintText("Meu login falha e a fatura veio errada"),
-                List.of(new DocumentUrl("https://example.com/doc-1"))
-        );
+        return CreateComplaintCommand.builder()
+                .customerCpf("52998224725")
+                .customerName("Maria Silva")
+                .customerBirthDate(LocalDate.of(1990, 6, 15))
+                .customerEmail("maria.silva@example.com")
+                .complaintCreatedDate(LocalDate.of(2026, 3, 20))
+                .complaintText("Meu login falha e a fatura veio errada")
+                .documentUrls(List.of("https://example.com/doc-1"))
+                .build();
     }
 
     public static SearchComplaintsQuery searchQuery() {
-        return new SearchComplaintsQuery(
-                Optional.of(customer().cpf()),
-                List.of("acesso", "cobrança"),
-                List.of(ComplaintStatus.PENDING),
-                Optional.of(LocalDate.of(2026, 3, 1)),
-                Optional.of(LocalDate.of(2026, 3, 31))
-        );
-    }
-
-    public static ComplaintCreatedNotification complaintCreatedNotification() {
-        return new ComplaintCreatedNotification(complaint().id(), Instant.parse("2026-03-23T10:15:30Z"));
+        return SearchComplaintsQuery.builder()
+                .customerCpf("52998224725")
+                .categoryNames(List.of("acesso", "cobranca"))
+                .statusIds(List.of(ComplaintStatus.PENDING.id()))
+                .startDate(LocalDate.of(2026, 3, 1))
+                .endDate(LocalDate.of(2026, 3, 31))
+                .build();
     }
 
     public static ComplaintSlaWarningNotification complaintSlaWarningNotification() {
@@ -116,7 +118,7 @@ public final class TestFixtures {
     }
 
     public static Complaint approachingSlaComplaint() {
-        return Complaint.restore(
+        return Complaint.reconstitute(
                 complaint().id(),
                 complaint().customer(),
                 LocalDate.of(2026, 3, 16),

@@ -1,5 +1,7 @@
 package com.complaintmanagementservice.infrastructure.config;
 
+import com.complaintmanagementservice.infrastructure.messaging.JacksonTextMessageConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.jms.ConnectionFactory;
 import jakarta.jms.Session;
 import org.apache.activemq.ActiveMQConnectionFactory;
@@ -13,8 +15,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.support.converter.MessageConverter;
-import org.springframework.jms.support.converter.MessageType;
-import org.springframework.jms.support.converter.MappingJackson2MessageConverter;
 
 @Configuration
 @EnableJms
@@ -46,11 +46,8 @@ public class MessagingConfiguration {
     }
 
     @Bean
-    public MessageConverter messageConverter() {
-        MappingJackson2MessageConverter messageConverter = new MappingJackson2MessageConverter();
-        messageConverter.setTargetType(MessageType.TEXT);
-        messageConverter.setTypeIdPropertyName("_type");
-        return messageConverter;
+    public MessageConverter messageConverter(ObjectMapper objectMapper) {
+        return new JacksonTextMessageConverter(objectMapper);
     }
 
     @Bean
@@ -64,7 +61,7 @@ public class MessagingConfiguration {
         factory.setSessionTransacted(true);
         factory.setSessionAcknowledgeMode(Session.SESSION_TRANSACTED);
         factory.setErrorHandler(error -> {
-            throw new IllegalStateException("Complaint queue listener failed", error);
+            throw new IllegalStateException("Falha ao consumir a mensagem da fila de reclamacoes", error);
         });
         return factory;
     }

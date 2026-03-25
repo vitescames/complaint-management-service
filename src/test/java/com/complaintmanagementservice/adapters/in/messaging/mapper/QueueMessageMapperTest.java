@@ -23,8 +23,8 @@ class QueueMessageMapperTest {
 
         var command = mapper.toCommand(message);
 
-        assertThat(command.customerCpf().value()).isEqualTo("52998224725");
-        assertThat(command.customerName().value()).isEqualTo("Maria Silva");
+        assertThat(command.customerCpf()).isEqualTo("52998224725");
+        assertThat(command.customerName()).isEqualTo("Maria Silva");
         assertThat(command.documentUrls()).isEmpty();
     }
 }
