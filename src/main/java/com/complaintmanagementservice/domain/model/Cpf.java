@@ -6,7 +6,7 @@ public record Cpf(String value) {
 
     public Cpf {
         if (value == null) {
-            throw new DomainValidationException("O CPF e obrigatorio");
+            throw new DomainValidationException("O CPF é obrigatório.");
         }
         String normalized = value.replaceAll("\\D", "");
         validate(normalized);
@@ -15,11 +15,11 @@ public record Cpf(String value) {
 
     private static void validate(String cpf) {
         if (cpf.length() != 11 || cpf.chars().distinct().count() == 1) {
-            throw new DomainValidationException("CPF invalido");
+            throw new DomainValidationException("CPF inválido.");
         }
         if (calculateDigit(cpf, 9) != Character.getNumericValue(cpf.charAt(9))
                 || calculateDigit(cpf, 10) != Character.getNumericValue(cpf.charAt(10))) {
-            throw new DomainValidationException("CPF invalido");
+            throw new DomainValidationException("CPF inválido.");
         }
     }
 

@@ -1,6 +1,5 @@
 package com.complaintmanagementservice.application.event;
 
-import com.complaintmanagementservice.application.exception.RequestValidationException;
 import com.complaintmanagementservice.domain.event.DomainEvent;
 
 import java.util.List;
@@ -12,24 +11,22 @@ public final class ObserverDomainEventPublisher implements DomainEventPublisher 
 
     @Override
     public void register(DomainEventObserver<? extends DomainEvent> observer) {
-        if (observer == null) {
-            throw new RequestValidationException("O observador de evento e obrigatorio");
+        if (observer != null) {
+            observers.add(observer);
         }
-        observers.add(observer);
     }
 
     @Override
     public void remove(DomainEventObserver<? extends DomainEvent> observer) {
-        if (observer == null) {
-            throw new RequestValidationException("O observador de evento e obrigatorio");
+        if (observer != null) {
+            observers.remove(observer);
         }
-        observers.remove(observer);
     }
 
     @Override
     public void publish(DomainEvent event) {
         if (event == null) {
-            throw new RequestValidationException("O evento de dominio e obrigatorio");
+            return;
         }
         observers.stream()
                 .filter(observer -> observer.supports(event))

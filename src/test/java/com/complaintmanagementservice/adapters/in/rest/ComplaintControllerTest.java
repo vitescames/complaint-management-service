@@ -96,7 +96,7 @@ class ComplaintControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Dados invalidos"))
+                .andExpect(jsonPath("$.title").value("Dados inválidos"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.errors.length()").value(7));
     }
@@ -105,7 +105,7 @@ class ComplaintControllerTest {
     void shouldReturnBusinessViolationWhenUseCaseRejectsRequest() throws Exception {
         CreateComplaintUseCase createComplaintUseCase = mock(CreateComplaintUseCase.class);
         when(createComplaintUseCase.create(any()))
-                .thenThrow(new BusinessRuleViolationException("A data da reclamacao nao pode ser futura"));
+                .thenThrow(new BusinessRuleViolationException("A data da reclamação não pode ser futura."));
 
         MockMvc mockMvc = mockMvc(createComplaintUseCase, mock(SearchComplaintsUseCase.class));
 
@@ -124,15 +124,15 @@ class ComplaintControllerTest {
                                 }
                                 """))
                 .andExpect(status().isUnprocessableContent())
-                .andExpect(jsonPath("$.title").value("Regra de negocio violada"))
-                .andExpect(jsonPath("$.message").value("A data da reclamacao nao pode ser futura"));
+                .andExpect(jsonPath("$.title").value("Regra de negócio violada"))
+                .andExpect(jsonPath("$.message").value("A data da reclamação não pode ser futura."));
     }
 
     @Test
     void shouldReturnNotFoundWhenReferenceDataIsMissing() throws Exception {
         CreateComplaintUseCase createComplaintUseCase = mock(CreateComplaintUseCase.class);
         when(createComplaintUseCase.create(any()))
-                .thenThrow(new ReferenceDataNotFoundException("O catalogo de categorias de reclamacao nao esta configurado"));
+                .thenThrow(new ReferenceDataNotFoundException("O catálogo de categorias de reclamação não está configurado."));
 
         MockMvc mockMvc = mockMvc(createComplaintUseCase, mock(SearchComplaintsUseCase.class));
 
@@ -151,8 +151,8 @@ class ComplaintControllerTest {
                                 }
                                 """))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.title").value("Recurso nao encontrado"))
-                .andExpect(jsonPath("$.message").value("O catalogo de categorias de reclamacao nao esta configurado"));
+                .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
+                .andExpect(jsonPath("$.message").value("O catálogo de categorias de reclamação não está configurado."));
     }
 
     @Test

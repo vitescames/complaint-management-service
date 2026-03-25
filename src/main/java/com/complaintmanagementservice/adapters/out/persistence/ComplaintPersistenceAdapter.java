@@ -9,8 +9,6 @@ import com.complaintmanagementservice.adapters.out.persistence.repository.Catego
 import com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintJpaRepository;
 import com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintStatusJpaRepository;
 import com.complaintmanagementservice.adapters.out.persistence.repository.CustomerJpaRepository;
-import com.complaintmanagementservice.application.exception.InfrastructureUnavailableException;
-import com.complaintmanagementservice.application.exception.PersistenceOperationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
 import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPort;
 import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
@@ -19,7 +17,6 @@ import com.complaintmanagementservice.domain.model.Complaint;
 import com.complaintmanagementservice.domain.model.ComplaintStatus;
 import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
 import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,72 +57,45 @@ public class ComplaintPersistenceAdapter implements ComplaintRepositoryPort {
     @Override
     @Transactional
     public Complaint save(Complaint complaint) {
-        try {
-            return resilientExecutor.executeSupplier(ResilienceProfile.PERSISTENCE, () -> {
-                CustomerEntity customerEntity = customerJpaRepository.save(
-                        complaintPersistenceMapper.toCustomerEntity(complaint.customer())
-                );
-                ComplaintStatusEntity statusEntity = complaintStatusJpaRepository.findById(complaint.status().id())
-                        .orElseThrow(() -> new ReferenceDataNotFoundException("O status de referencia da reclamacao nao foi encontrado"));
-                Set<Long> categoryIds = complaint.categories().stream()
-                        .map(Category::id)
-                        .collect(Collectors.toSet());
-                Set<CategoryEntity> categoryEntities = Set.copyOf(categoryJpaRepository.findAllById(categoryIds));
-                ComplaintEntity savedEntity = complaintJpaRepository.save(
-                        complaintPersistenceMapper.toEntity(complaint, customerEntity, statusEntity, categoryEntities)
-                );
-                return complaintPersistenceMapper.toDomain(savedEntity);
-            });
-        }
-        catch (ReferenceDataNotFoundException exception) {
-            throw exception;
-        }
-        catch (CallNotPermittedException exception) {
-            throw new InfrastructureUnavailableException("A infraestrutura de persistencia esta temporariamente indisponivel", exception);
-        }
-        catch (RuntimeException exception) {
-            throw new PersistenceOperationException("Nao foi possivel persistir a reclamacao", exception);
-        }
+        return resilientExecutor.executeSupplier(ResilienceProfile.PERSISTENCE, () -> {
+            CustomerEntity customerEntity = customerJpaRepository.save(
+                    complaintPersistenceMapper.toCustomerEntity(complaint.customer())
+            );
+            ComplaintStatusEntity statusEntity = complaintStatusJpaRepository.findById(complaint.status().id())
+                    .orElseThrow(() -> new ReferenceDataNotFoundException("O status de referência da reclamação não foi encontrado."));
+            Set<Long> categoryIds = complaint.categories().stream()
+                    .map(Category::id)
+                    .collect(Collectors.toSet());
+            Set<CategoryEntity> categoryEntities = Set.copyOf(categoryJpaRepository.findAllById(categoryIds));
+            ComplaintEntity savedEntity = complaintJpaRepository.save(
+                    complaintPersistenceMapper.toEntity(complaint, customerEntity, statusEntity, categoryEntities)
+            );
+            return complaintPersistenceMapper.toDomain(savedEntity);
+        });
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Complaint> search(SearchComplaintsQuery query) {
-        try {
-            return resilientExecutor.executeSupplier(
-                    ResilienceProfile.PERSISTENCE,
-                    () -> complaintJpaRepository.findAll(ComplaintSpecifications.from(query), COMPLAINT_DATE_DESC).stream()
-                            .map(complaintPersistenceMapper::toDomain)
-                            .toList()
-            );
-        }
-        catch (CallNotPermittedException exception) {
-            throw new InfrastructureUnavailableException("A infraestrutura de persistencia esta temporariamente indisponivel", exception);
-        }
-        catch (RuntimeException exception) {
-            throw new PersistenceOperationException("Nao foi possivel consultar as reclamacoes", exception);
-        }
+        return resilientExecutor.executeSupplier(
+                ResilienceProfile.PERSISTENCE,
+                () -> complaintJpaRepository.findAll(ComplaintSpecifications.from(query), COMPLAINT_DATE_DESC).stream()
+                        .map(complaintPersistenceMapper::toDomain)
+                        .toList()
+        );
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Complaint> findNonResolvedComplaintsCreatedOn(LocalDate complaintDate) {
-        try {
-            return resilientExecutor.executeSupplier(
-                    ResilienceProfile.PERSISTENCE,
-                    () -> complaintJpaRepository.findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(
-                                    complaintDate,
-                                    ComplaintStatus.RESOLVED.id()
-                            ).stream()
-                            .map(complaintPersistenceMapper::toDomain)
-                            .toList()
-            );
-        }
-        catch (CallNotPermittedException exception) {
-            throw new InfrastructureUnavailableException("A infraestrutura de persistencia esta temporariamente indisponivel", exception);
-        }
-        catch (RuntimeException exception) {
-            throw new PersistenceOperationException("Nao foi possivel consultar as reclamacoes proximas ao SLA", exception);
-        }
+        return resilientExecutor.executeSupplier(
+                ResilienceProfile.PERSISTENCE,
+                () -> complaintJpaRepository.findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(
+                                complaintDate,
+                                ComplaintStatus.RESOLVED.id()
+                        ).stream()
+                        .map(complaintPersistenceMapper::toDomain)
+                        .toList()
+        );
     }
 }

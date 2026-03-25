@@ -13,15 +13,15 @@ public final class Category {
 
     private Category(Builder builder) {
         if (builder.id == null) {
-            throw new DomainValidationException("O identificador da categoria e obrigatorio");
+            throw new DomainValidationException("O identificador da categoria é obrigatório.");
         }
         if (builder.name == null) {
-            throw new DomainValidationException("O nome da categoria e obrigatorio");
+            throw new DomainValidationException("O nome da categoria é obrigatório.");
         }
 
         String normalizedName = builder.name.trim();
         if (normalizedName.isBlank()) {
-            throw new DomainValidationException("O nome da categoria e obrigatorio");
+            throw new DomainValidationException("O nome da categoria é obrigatório.");
         }
 
         this.id = builder.id;

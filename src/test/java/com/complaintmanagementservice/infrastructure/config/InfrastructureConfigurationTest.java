@@ -12,9 +12,9 @@ import com.complaintmanagementservice.domain.event.DomainEvent;
 import com.complaintmanagementservice.domain.service.ComplaintCategoryClassifier;
 import com.complaintmanagementservice.domain.service.ComplaintSlaPolicy;
 import com.complaintmanagementservice.infrastructure.messaging.JacksonTextMessageConverter;
-import jakarta.jms.ConnectionFactory;
 import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
+import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
@@ -45,7 +45,16 @@ class InfrastructureConfigurationTest {
                 new ResilienceProperties.ProfileSettings(2, 0, 2, 1, 50f, 1000)
         );
         var resilientExecutor = applicationConfiguration.resilientExecutor(resilienceProperties);
-        DomainEventObserver<? extends DomainEvent> observer = mock(DomainEventObserver.class);
+        DomainEventObserver<DomainEvent> observer = new DomainEventObserver<>() {
+            @Override
+            public Class<DomainEvent> supportedEventType() {
+                return DomainEvent.class;
+            }
+
+            @Override
+            public void onEvent(DomainEvent event) {
+            }
+        };
 
         assertThat(applicationConfiguration.clock()).isNotNull();
         assertThat(applicationConfiguration.complaintCategoryClassifier()).isInstanceOf(ComplaintCategoryClassifier.class);
@@ -83,21 +92,31 @@ class InfrastructureConfigurationTest {
                 new MessagingProperties.RedeliverySettings(3, 10, 2.0)
         );
         BrokerService brokerService = messagingConfiguration.embeddedBroker(properties);
-        ConnectionFactory connectionFactory = messagingConfiguration.connectionFactory(properties);
+        ActiveMQConnectionFactory connectionFactory =
+                (ActiveMQConnectionFactory) messagingConfiguration.connectionFactory(properties);
         MessageConverter messageConverter = messagingConfiguration.messageConverter(new com.fasterxml.jackson.databind.ObjectMapper());
         DefaultJmsListenerContainerFactory factory =
                 messagingConfiguration.complaintListenerContainerFactory(connectionFactory, messageConverter);
+        ErrorHandler errorHandler = (ErrorHandler) ReflectionTestUtils.getField(factory, "errorHandler");
 
         assertThat(brokerService.isPersistent()).isFalse();
         assertThat(connectionFactory).isNotNull();
+        assertThat(connectionFactory.isTrustAllPackages()).isFalse();
+        assertThat(connectionFactory.getTrustedPackages()).containsExactly(
+                "com.complaintmanagementservice.adapters.in.messaging.dto",
+                "com.complaintmanagementservice.adapters.out.messaging.dto"
+        );
         assertThat(messageConverter).isInstanceOf(JacksonTextMessageConverter.class);
         assertThat(factory).isNotNull();
-        ErrorHandler errorHandler = (ErrorHandler) ReflectionTestUtils.getField(factory, "errorHandler");
-        assertThatThrownBy(() -> errorHandler.handleError(new RuntimeException("boom")))
+        assertThat(errorHandler).isNotNull();
+
+        RuntimeException boom = new RuntimeException("boom");
+        assertThatThrownBy(() -> errorHandler.handleError(boom))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Falha ao consumir a mensagem da fila de reclamacoes")
+                .hasMessage("Falha ao consumir a mensagem da fila de reclamações.")
                 .cause()
-                .hasMessage("boom");
+                .isSameAs(boom);
+
         brokerService.start();
         brokerService.stop();
     }
@@ -111,7 +130,8 @@ class InfrastructureConfigurationTest {
         Session session = mock(Session.class);
         TextMessage textMessage = mock(TextMessage.class);
         when(session.createTextMessage(any())).thenReturn(textMessage);
-        when(textMessage.getStringProperty("_type")).thenReturn(com.complaintmanagementservice.adapters.out.messaging.dto.ComplaintSlaWarningQueueMessage.class.getName());
+        when(textMessage.getStringProperty("_type"))
+                .thenReturn(com.complaintmanagementservice.adapters.out.messaging.dto.ComplaintSlaWarningQueueMessage.class.getName());
         when(textMessage.getText()).thenReturn("""
                 {"complaintId":"11111111-1111-1111-1111-111111111111","slaDeadlineDate":"2026-03-30"}
                 """);

@@ -1,11 +1,8 @@
 package com.complaintmanagementservice.application.query;
 
-import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
-import com.complaintmanagementservice.domain.model.ComplaintStatus;
-import com.complaintmanagementservice.domain.model.Cpf;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class SearchComplaintsQuery {
@@ -18,8 +15,8 @@ public final class SearchComplaintsQuery {
 
     private SearchComplaintsQuery(Builder builder) {
         this.customerCpf = builder.customerCpf;
-        this.categoryNames = List.copyOf(builder.categoryNames);
-        this.statusIds = List.copyOf(builder.statusIds);
+        this.categoryNames = Collections.unmodifiableList(new ArrayList<>(builder.categoryNames));
+        this.statusIds = Collections.unmodifiableList(new ArrayList<>(builder.statusIds));
         this.startDate = builder.startDate;
         this.endDate = builder.endDate;
     }
@@ -97,42 +94,7 @@ public final class SearchComplaintsQuery {
         }
 
         public SearchComplaintsQuery build() {
-            customerCpf = normalize(customerCpf);
-            if (customerCpf != null) {
-                new Cpf(customerCpf);
-            }
-
-            List<String> normalizedCategories = new ArrayList<>();
-            for (String categoryName : categoryNames) {
-                String normalized = normalize(categoryName);
-                if (normalized != null) {
-                    normalizedCategories.add(normalized);
-                }
-            }
-            categoryNames = normalizedCategories;
-
-            List<Integer> validatedStatusIds = new ArrayList<>();
-            for (Integer statusId : statusIds) {
-                if (statusId != null) {
-                    ComplaintStatus.fromId(statusId);
-                    validatedStatusIds.add(statusId);
-                }
-            }
-            statusIds = validatedStatusIds;
-
-            if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
-                throw new BusinessRuleViolationException("A data inicial deve ser menor ou igual a data final");
-            }
-
             return new SearchComplaintsQuery(this);
-        }
-
-        private String normalize(String value) {
-            if (value == null) {
-                return null;
-            }
-            String normalized = value.trim();
-            return normalized.isEmpty() ? null : normalized;
         }
     }
 }

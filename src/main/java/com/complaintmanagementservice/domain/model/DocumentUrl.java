@@ -8,18 +8,31 @@ public record DocumentUrl(String value) {
 
     public DocumentUrl {
         if (value == null) {
-            throw new DomainValidationException("A URL do documento e obrigatoria");
+            throw new DomainValidationException("A URL do documento é obrigatória.");
         }
-        String normalized = value.trim();
+
+        String normalizedValue = value.trim();
+        URI uri = toUri(normalizedValue);
+        if (!isSupportedAbsoluteHttpUrl(uri)) {
+            throw new DomainValidationException("A URL do documento deve ser HTTP ou HTTPS absoluta.");
+        }
+
+        value = normalizedValue;
+    }
+
+    private static URI toUri(String value) {
         try {
-            URI uri = URI.create(normalized);
-            if (uri.getScheme() == null || (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme()))) {
-                throw new DomainValidationException("A URL do documento deve ser HTTP ou HTTPS absoluta");
-            }
+            return URI.create(value);
         }
         catch (IllegalArgumentException exception) {
-            throw new DomainValidationException("A URL do documento deve ser HTTP ou HTTPS absoluta");
+            throw new DomainValidationException("A URL do documento deve ser HTTP ou HTTPS absoluta.");
         }
-        value = normalized;
+    }
+
+    private static boolean isSupportedAbsoluteHttpUrl(URI uri) {
+        String scheme = uri.getScheme();
+        return uri.isAbsolute()
+                && uri.getHost() != null
+                && ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme));
     }
 }

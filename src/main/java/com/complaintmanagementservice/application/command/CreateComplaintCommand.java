@@ -1,15 +1,8 @@
 package com.complaintmanagementservice.application.command;
 
-import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
-import com.complaintmanagementservice.application.exception.RequestValidationException;
-import com.complaintmanagementservice.domain.model.ComplaintText;
-import com.complaintmanagementservice.domain.model.Cpf;
-import com.complaintmanagementservice.domain.model.CustomerName;
-import com.complaintmanagementservice.domain.model.DocumentUrl;
-import com.complaintmanagementservice.domain.model.EmailAddress;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class CreateComplaintCommand {
@@ -29,7 +22,7 @@ public final class CreateComplaintCommand {
         this.customerEmail = builder.customerEmail;
         this.complaintCreatedDate = builder.complaintCreatedDate;
         this.complaintText = builder.complaintText;
-        this.documentUrls = List.copyOf(builder.documentUrls);
+        this.documentUrls = Collections.unmodifiableList(new ArrayList<>(builder.documentUrls));
     }
 
     public static Builder builder() {
@@ -108,47 +101,12 @@ public final class CreateComplaintCommand {
         }
 
         public Builder documentUrls(List<String> documentUrls) {
-            this.documentUrls = documentUrls == null ? List.of() : List.copyOf(documentUrls);
+            this.documentUrls = documentUrls == null ? List.of() : new ArrayList<>(documentUrls);
             return this;
         }
 
         public CreateComplaintCommand build() {
-            customerCpf = requireText(customerCpf, "O CPF do cliente e obrigatorio");
-            customerName = requireText(customerName, "O nome do cliente e obrigatorio");
-            customerEmail = requireText(customerEmail, "O e-mail do cliente e obrigatorio");
-            complaintText = requireText(complaintText, "O texto da reclamacao e obrigatorio");
-
-            if (customerBirthDate == null) {
-                throw new RequestValidationException("A data de nascimento do cliente e obrigatoria");
-            }
-            if (complaintCreatedDate == null) {
-                throw new RequestValidationException("A data da reclamacao e obrigatoria");
-            }
-            if (complaintCreatedDate.isAfter(LocalDate.now())) {
-                throw new BusinessRuleViolationException("A data da reclamacao nao pode ser futura");
-            }
-
-            new Cpf(customerCpf);
-            new CustomerName(customerName);
-            new EmailAddress(customerEmail);
-            new ComplaintText(complaintText);
-
-            List<String> normalizedUrls = new ArrayList<>();
-            for (String documentUrl : documentUrls) {
-                String normalizedUrl = requireText(documentUrl, "A URL do documento e obrigatoria");
-                new DocumentUrl(normalizedUrl);
-                normalizedUrls.add(normalizedUrl);
-            }
-            documentUrls = normalizedUrls;
-
             return new CreateComplaintCommand(this);
-        }
-
-        private String requireText(String value, String message) {
-            if (value == null || value.trim().isEmpty()) {
-                throw new RequestValidationException(message);
-            }
-            return value.trim();
         }
     }
 }

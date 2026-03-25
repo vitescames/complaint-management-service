@@ -11,27 +11,27 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record CreateComplaintRestRequest(
-        @NotNull(message = "Os dados do cliente sao obrigatorios") @Valid CustomerPayload customer,
-        @NotNull(message = "A data da reclamacao e obrigatoria") LocalDate complaintCreatedDate,
-        @NotBlank(message = "O texto da reclamacao e obrigatorio")
-        @Size(max = 4000, message = "O texto da reclamacao deve ter no maximo 4000 caracteres")
+        @NotNull(message = "Não pode ser nulo") @Valid CustomerPayload customer,
+        @NotNull(message = "Não pode ser nulo") LocalDate complaintCreatedDate,
+        @NotBlank(message = "Não pode ser nulo ou vazio")
+        @Size(max = 4000, message = "Deve ter no máximo 4000 caracteres")
         String complaintText,
-        List<@NotBlank(message = "A URL do documento e obrigatoria")
-             @Pattern(regexp = "https?://.+", message = "A URL do documento deve ser HTTP ou HTTPS valida")
+        List<@NotBlank(message = "Não pode ser nulo ou vazio")
+             @Pattern(regexp = "https?://.+", message = "Formato inválido")
              String> documentUrls
 ) {
 
     public record CustomerPayload(
-            @NotBlank(message = "O CPF do cliente e obrigatorio")
-            @Pattern(regexp = "\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}|\\d{11}", message = "O CPF do cliente e invalido")
+            @NotBlank(message = "Não pode ser nulo ou vazio")
+            @Pattern(regexp = "\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}|\\d{11}", message = "Formato inválido")
             String cpf,
-            @NotBlank(message = "O nome do cliente e obrigatorio")
-            @Size(max = 120, message = "O nome do cliente deve ter no maximo 120 caracteres")
+            @NotBlank(message = "Não pode ser nulo ou vazio")
+            @Size(max = 120, message = "Deve ter no máximo 120 caracteres")
             String name,
-            @NotNull(message = "A data de nascimento do cliente e obrigatoria")
+            @NotNull(message = "Não pode ser nulo")
             LocalDate birthDate,
-            @NotBlank(message = "O e-mail do cliente e obrigatorio")
-            @Email(message = "Formato de e-mail invalido")
+            @NotBlank(message = "Não pode ser nulo ou vazio")
+            @Email(message = "Formato inválido")
             String email
     ) {
     }

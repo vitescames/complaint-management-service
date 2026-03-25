@@ -23,6 +23,6 @@ public enum ComplaintStatus {
         return Arrays.stream(values())
                 .filter(status -> status.id == id)
                 .findFirst()
-                .orElseThrow(() -> new DomainValidationException("O status da reclamacao e invalido"));
+                .orElseThrow(() -> new DomainValidationException("O status da reclamação é inválido."));
     }
 }

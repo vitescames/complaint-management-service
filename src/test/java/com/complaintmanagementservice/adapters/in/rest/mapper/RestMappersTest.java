@@ -7,6 +7,7 @@ import com.complaintmanagementservice.domain.model.ComplaintStatus;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,8 +88,16 @@ class RestMappersTest {
         assertThat(emptyQuery.categoryNames()).isEmpty();
         assertThat(emptyQuery.statusIds()).isEmpty();
 
-        var blankCpfQuery = searchComplaintsQueryMapper.toQuery(" ", List.of("acesso"), null, null, LocalDate.of(2026, 3, 31));
+        var blankCpfQuery = searchComplaintsQueryMapper.toQuery(
+                " ",
+                Arrays.asList("  acesso  ", " ", null),
+                Arrays.asList(null, 1),
+                null,
+                LocalDate.of(2026, 3, 31)
+        );
         assertThat(blankCpfQuery.customerCpf()).isNull();
+        assertThat(blankCpfQuery.categoryNames()).containsExactly("acesso");
+        assertThat(blankCpfQuery.statusIds()).containsExactly(1);
         assertThat(blankCpfQuery.endDate()).isEqualTo(LocalDate.of(2026, 3, 31));
     }
 }

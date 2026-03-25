@@ -13,17 +13,20 @@ public final class CategoryKeyword {
 
     public CategoryKeyword(Long id, String value) {
         if (id == null) {
-            throw new DomainValidationException("O identificador da palavra-chave da categoria e obrigatorio");
+            throw new DomainValidationException("O identificador da palavra-chave da categoria é obrigatório.");
         }
         if (value == null) {
-            throw new DomainValidationException("A palavra-chave da categoria e obrigatoria");
+            throw new DomainValidationException("A palavra-chave da categoria é obrigatória.");
         }
+
+        String normalizedKeywordValue = value.trim();
+        if (normalizedKeywordValue.isBlank()) {
+            throw new DomainValidationException("A palavra-chave da categoria é obrigatória.");
+        }
+
         this.id = id;
-        this.value = value.trim();
-        if (this.value.isBlank()) {
-            throw new DomainValidationException("A palavra-chave da categoria e obrigatoria");
-        }
-        this.normalizedValue = normalize(this.value);
+        this.value = normalizedKeywordValue;
+        this.normalizedValue = normalize(normalizedKeywordValue);
     }
 
     public Long id() {

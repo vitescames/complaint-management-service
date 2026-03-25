@@ -6,11 +6,11 @@ public record ComplaintText(String value) {
 
     public ComplaintText {
         if (value == null) {
-            throw new DomainValidationException("O texto da reclamacao e obrigatorio");
+            throw new DomainValidationException("O texto da reclamação é obrigatório.");
         }
         String normalized = value.trim();
         if (normalized.isBlank() || normalized.length() > 4000) {
-            throw new DomainValidationException("O texto da reclamacao deve ter entre 1 e 4000 caracteres");
+            throw new DomainValidationException("O texto da reclamação deve ter entre 1 e 4000 caracteres.");
         }
         value = normalized;
     }

@@ -16,6 +16,8 @@ import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.support.converter.MessageConverter;
 
+import java.util.List;
+
 @Configuration
 @EnableJms
 public class MessagingConfiguration {
@@ -42,6 +44,11 @@ public class MessagingConfiguration {
         redeliveryPolicy.setUseExponentialBackOff(true);
         redeliveryPolicy.setBackOffMultiplier(messagingProperties.redelivery().backoffMultiplier());
         connectionFactory.setRedeliveryPolicy(redeliveryPolicy);
+        connectionFactory.setTrustAllPackages(false);
+        connectionFactory.setTrustedPackages(List.of(
+                "com.complaintmanagementservice.adapters.in.messaging.dto",
+                "com.complaintmanagementservice.adapters.out.messaging.dto"
+        ));
         return connectionFactory;
     }
 
@@ -61,7 +68,7 @@ public class MessagingConfiguration {
         factory.setSessionTransacted(true);
         factory.setSessionAcknowledgeMode(Session.SESSION_TRANSACTED);
         factory.setErrorHandler(error -> {
-            throw new IllegalStateException("Falha ao consumir a mensagem da fila de reclamacoes", error);
+            throw new IllegalStateException("Falha ao consumir a mensagem da fila de reclamações.", error);
         });
         return factory;
     }

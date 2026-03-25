@@ -9,21 +9,21 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record CreateComplaintQueueMessage(
-        @NotBlank(message = "O CPF do cliente e obrigatorio")
-        @Pattern(regexp = "\\d{11}", message = "O CPF do cliente e invalido")
+        @NotBlank(message = "Não pode ser nulo ou vazio")
+        @Pattern(regexp = "\\d{11}", message = "Formato inválido")
         String customerDocument,
-        @NotBlank(message = "O nome do cliente e obrigatorio")
-        @Size(max = 120, message = "O nome do cliente deve ter no maximo 120 caracteres")
+        @NotBlank(message = "Não pode ser nulo ou vazio")
+        @Size(max = 120, message = "Deve ter no máximo 120 caracteres")
         String customerFullName,
-        @NotNull(message = "A data de nascimento do cliente e obrigatoria")
+        @NotNull(message = "Não pode ser nulo")
         LocalDate customerBirthDate,
-        @NotBlank(message = "O e-mail do cliente e obrigatorio")
-        @Email(message = "Formato de e-mail invalido")
+        @NotBlank(message = "Não pode ser nulo ou vazio")
+        @Email(message = "Formato inválido")
         String customerEmailAddress,
-        @NotNull(message = "A data da ocorrencia e obrigatoria")
+        @NotNull(message = "Não pode ser nulo")
         LocalDate occurrenceDate,
-        @NotBlank(message = "A descricao da reclamacao e obrigatoria")
-        @Size(max = 4000, message = "A descricao da reclamacao deve ter no maximo 4000 caracteres")
+        @NotBlank(message = "Não pode ser nulo ou vazio")
+        @Size(max = 4000, message = "Deve ter no máximo 4000 caracteres")
         String description
 ) {
 }
