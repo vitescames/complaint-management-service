@@ -1,6 +1,5 @@
 # Maven and build outputs
 target/
-out/
 bin/
 
 # Java artifacts
