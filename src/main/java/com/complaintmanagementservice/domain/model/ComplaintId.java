@@ -1,7 +1,6 @@
 package com.complaintmanagementservice.domain.model;
 
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
-import org.jspecify.annotations.NonNull;
 
 import java.util.UUID;
 
@@ -27,7 +26,7 @@ public record ComplaintId(UUID value) {
     }
 
     @Override
-    public @NonNull String toString() {
+    public String toString() {
         return value.toString();
     }
 }

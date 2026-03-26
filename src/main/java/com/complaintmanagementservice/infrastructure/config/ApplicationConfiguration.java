@@ -12,6 +12,7 @@ import com.complaintmanagementservice.application.port.out.ComplaintSlaWarningMe
 import com.complaintmanagementservice.application.usecase.CreateComplaintUseCaseImpl;
 import com.complaintmanagementservice.application.usecase.PublishSlaWarningsUseCaseImpl;
 import com.complaintmanagementservice.application.usecase.SearchComplaintsUseCaseImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.complaintmanagementservice.domain.event.DomainEvent;
 import com.complaintmanagementservice.domain.service.ComplaintCategoryClassifier;
 import com.complaintmanagementservice.domain.service.ComplaintSlaPolicy;
@@ -35,6 +36,11 @@ public class ApplicationConfiguration {
     @Bean
     public Clock clock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper().findAndRegisterModules();
     }
 
     @Bean

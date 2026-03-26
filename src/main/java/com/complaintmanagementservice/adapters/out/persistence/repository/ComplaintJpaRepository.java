@@ -1,13 +1,12 @@
 package com.complaintmanagementservice.adapters.out.persistence.repository;
 
 import com.complaintmanagementservice.adapters.out.persistence.entity.ComplaintEntity;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.domain.Specification;
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,8 +16,8 @@ public interface ComplaintJpaRepository extends JpaRepository<ComplaintEntity, U
 
     @Override
     @EntityGraph(attributePaths = {"customer", "status", "categories", "documents"})
-    @NonNull List<ComplaintEntity> findAll(@Nullable Specification<ComplaintEntity> specification, @NonNull Sort sort);
+    List<ComplaintEntity> findAll(@Nullable Specification<ComplaintEntity> specification, Sort sort);
 
     @EntityGraph(attributePaths = {"customer", "status", "categories", "documents"})
-    @NonNull List<ComplaintEntity> findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(@NonNull LocalDate complaintDate, @NonNull Integer statusId);
+    List<ComplaintEntity> findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(LocalDate complaintDate, Integer statusId);
 }

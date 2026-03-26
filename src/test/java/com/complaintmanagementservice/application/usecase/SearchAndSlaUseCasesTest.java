@@ -20,7 +20,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,20 +39,16 @@ class SearchAndSlaUseCasesTest {
     private ComplaintSlaWarningMessagePort complaintSlaWarningMessagePort;
 
     @Test
-    void shouldNormalizeAndDelegateSearchToRepository() {
+    void shouldValidateAndDelegateSearchToRepository() {
         SearchComplaintsUseCaseImpl useCase = new SearchComplaintsUseCaseImpl(complaintRepositoryPort);
         when(complaintRepositoryPort.search(any())).thenReturn(List.of(TestFixtures.complaint()));
+        SearchComplaintsQuery query = TestFixtures.searchQuery();
 
-        List<Complaint> complaints = useCase.search(SearchComplaintsQuery.builder()
-                .customerCpf(" 52998224725 ")
-                .categoryNames(Arrays.asList(" acesso ", null, "cobranca"))
-                .statusIds(Arrays.asList(null, ComplaintStatus.PENDING.id()))
-                .startDate(LocalDate.of(2026, 3, 1))
-                .endDate(LocalDate.of(2026, 3, 31))
-                .build());
+        List<Complaint> complaints = useCase.search(query);
 
         ArgumentCaptor<SearchComplaintsQuery> captor = ArgumentCaptor.forClass(SearchComplaintsQuery.class);
         verify(complaintRepositoryPort).search(captor.capture());
+        assertThat(captor.getValue()).isSameAs(query);
         assertThat(captor.getValue().customerCpf()).isEqualTo("52998224725");
         assertThat(captor.getValue().categoryNames()).containsExactly("acesso", "cobranca");
         assertThat(captor.getValue().statusIds()).containsExactly(ComplaintStatus.PENDING.id());
@@ -77,23 +72,23 @@ class SearchAndSlaUseCasesTest {
     }
 
     @Test
-    void shouldNormalizeBlankValuesAndAllowPartialDateFilters() {
+    void shouldAllowPartialDateFilters() {
         SearchComplaintsUseCaseImpl useCase = new SearchComplaintsUseCaseImpl(complaintRepositoryPort);
         when(complaintRepositoryPort.search(any())).thenReturn(List.of());
-
-        useCase.search(SearchComplaintsQuery.builder()
-                .customerCpf(" ")
-                .categoryNames(List.of(" "))
+        SearchComplaintsQuery query = SearchComplaintsQuery.builder()
                 .startDate(LocalDate.of(2026, 3, 1))
-                .build());
+                .build();
+
+        useCase.search(query);
 
         ArgumentCaptor<SearchComplaintsQuery> captor = ArgumentCaptor.forClass(SearchComplaintsQuery.class);
         verify(complaintRepositoryPort).search(captor.capture());
-        SearchComplaintsQuery normalizedQuery = captor.getValue();
-        assertThat(normalizedQuery.customerCpf()).isNull();
-        assertThat(normalizedQuery.categoryNames()).isEmpty();
-        assertThat(normalizedQuery.startDate()).isEqualTo(LocalDate.of(2026, 3, 1));
-        assertThat(normalizedQuery.endDate()).isNull();
+        SearchComplaintsQuery capturedQuery = captor.getValue();
+        assertThat(capturedQuery).isSameAs(query);
+        assertThat(capturedQuery.customerCpf()).isNull();
+        assertThat(capturedQuery.categoryNames()).isEmpty();
+        assertThat(capturedQuery.startDate()).isEqualTo(LocalDate.of(2026, 3, 1));
+        assertThat(capturedQuery.endDate()).isNull();
     }
 
     @Test

@@ -13,6 +13,9 @@ import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -26,23 +29,44 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ComplaintPersistenceSpecificationTest {
+
+    @Mock
+    private Root<ComplaintEntity> root;
+
+    @Mock
+    private CriteriaQuery<Object> criteriaQuery;
+
+    @Mock
+    private CriteriaBuilder criteriaBuilder;
+
+    @Mock
+    private Path<CustomerEntity> customerPath;
+
+    @Mock
+    private Path<String> cpfPath;
+
+    @Mock
+    private Join<ComplaintEntity, CategoryEntity> categoriesJoin;
+
+    @Mock
+    private Path<String> categoryNamePath;
+
+    @Mock
+    private Path<ComplaintStatusEntity> statusPath;
+
+    @Mock
+    private Path<Integer> statusIdPath;
+
+    @Mock
+    private Path<LocalDate> complaintDatePath;
 
     @Test
     void shouldBuildSpecificationUsingAllFilters() {
         SearchComplaintsQuery query = TestFixtures.searchQuery();
         Specification<ComplaintEntity> specification = ComplaintSpecifications.from(query);
 
-        Root<ComplaintEntity> root = mockRoot();
-        CriteriaQuery<Object> criteriaQuery = mockCriteriaQuery();
-        CriteriaBuilder criteriaBuilder = mock(CriteriaBuilder.class);
-        Path<CustomerEntity> customerPath = mockPath();
-        Path<String> cpfPath = mockPath();
-        Join<ComplaintEntity, CategoryEntity> categoriesJoin = mockJoin();
-        Path<String> categoryNamePath = mockPath();
-        Path<ComplaintStatusEntity> statusPath = mockPath();
-        Path<Integer> statusIdPath = mockPath();
-        Path<LocalDate> complaintDatePath = mockPath();
         Predicate customerPredicate = mock(Predicate.class);
         Predicate categoryPredicate = mock(Predicate.class);
         Predicate statusPredicate = mock(Predicate.class);
@@ -78,9 +102,6 @@ class ComplaintPersistenceSpecificationTest {
         SearchComplaintsQuery query = SearchComplaintsQuery.builder().build();
         Specification<ComplaintEntity> specification = ComplaintSpecifications.from(query);
 
-        Root<ComplaintEntity> root = mockRoot();
-        CriteriaQuery<Object> criteriaQuery = mockCriteriaQuery();
-        CriteriaBuilder criteriaBuilder = mock(CriteriaBuilder.class);
         Predicate finalPredicate = mock(Predicate.class);
 
         when(criteriaBuilder.and(any(Predicate[].class))).thenReturn(finalPredicate);
@@ -90,25 +111,5 @@ class ComplaintPersistenceSpecificationTest {
         verify(root, never()).join(anyString());
         verify(root, never()).get(anyString());
         verify(criteriaQuery, never()).distinct(true);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Root<ComplaintEntity> mockRoot() {
-        return mock(Root.class);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> CriteriaQuery<T> mockCriteriaQuery() {
-        return mock(CriteriaQuery.class);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Path<T> mockPath() {
-        return mock(Path.class);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <X, Y> Join<X, Y> mockJoin() {
-        return mock(Join.class);
     }
 }

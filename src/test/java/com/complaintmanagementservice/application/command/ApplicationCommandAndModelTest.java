@@ -7,7 +7,6 @@ import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,10 +35,10 @@ class ApplicationCommandAndModelTest {
                 .build();
 
         assertThat(command.customerCpf()).isEqualTo("52998224725");
-        assertThat(command.documentUrls()).containsExactly(" https://example.com/doc-1 ", null);
+        assertThat(command.documentUrls()).containsExactly(" https://example.com/doc-1 ");
         assertThat(query.customerCpf()).isEqualTo(" ");
-        assertThat(query.categoryNames()).containsExactly(" acesso ", null, " ");
-        assertThat(query.statusIds()).containsExactly(null, 1);
+        assertThat(query.categoryNames()).containsExactly(" acesso ", " ");
+        assertThat(query.statusIds()).containsExactly(1);
         assertThat(query.startDate()).isEqualTo(LocalDate.of(2026, 3, 1));
         assertThat(query.endDate()).isEqualTo(LocalDate.of(2026, 3, 31));
     }
@@ -86,15 +85,60 @@ class ApplicationCommandAndModelTest {
     void shouldExposeImmutableCommandAndQueryCollections() {
         CreateComplaintCommand command = TestFixtures.createComplaintCommand();
         SearchComplaintsQuery query = TestFixtures.searchQuery();
-        List<String> documentUrls = new ArrayList<>(command.documentUrls());
-        List<String> categoryNames = new ArrayList<>(query.categoryNames());
 
-        assertThat(documentUrls).isEqualTo(List.of("https://example.com/doc-1"));
-        assertThat(categoryNames).containsExactly("acesso", "cobranca");
+        assertThat(command.documentUrls()).isEqualTo(List.of("https://example.com/doc-1"));
+        assertThat(query.categoryNames()).containsExactly("acesso", "cobranca");
         assertThat(query.statusIds()).containsExactly(1);
-        assertThatThrownBy(() -> documentUrls.add("https://example.com/doc-2"))
+        assertThatThrownBy(() -> command.documentUrls().add("https://example.com/doc-2"))
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> categoryNames.add("fraude"))
+        assertThatThrownBy(() -> query.categoryNames().add("fraude"))
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void shouldRejectIncompleteCommandPayload() {
+        assertThatThrownBy(() -> CreateComplaintCommand.builder()
+                .customerCpf(" ")
+                .customerName("Maria Silva")
+                .customerBirthDate(LocalDate.of(1990, 6, 15))
+                .customerEmail("maria.silva@example.com")
+                .complaintCreatedDate(LocalDate.of(2026, 3, 20))
+                .complaintText("Meu login falha")
+                .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("O CPF do cliente é obrigatório.");
+
+        assertThatThrownBy(() -> CreateComplaintCommand.builder()
+                .customerCpf("52998224725")
+                .customerName("Maria Silva")
+                .customerBirthDate(LocalDate.of(1990, 6, 15))
+                .customerEmail("maria.silva@example.com")
+                .complaintCreatedDate(LocalDate.of(2026, 3, 20))
+                .complaintText(" ")
+                .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("O texto da reclamação é obrigatório.");
+
+        assertThatThrownBy(() -> CreateComplaintCommand.builder()
+                .customerCpf("52998224725")
+                .customerName("Maria Silva")
+                .customerBirthDate(null)
+                .customerEmail("maria.silva@example.com")
+                .complaintCreatedDate(LocalDate.of(2026, 3, 20))
+                .complaintText("Meu login falha")
+                .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("A data de nascimento do cliente é obrigatória.");
+
+        assertThatThrownBy(() -> CreateComplaintCommand.builder()
+                .customerCpf("52998224725")
+                .customerName("Maria Silva")
+                .customerBirthDate(LocalDate.of(1990, 6, 15))
+                .customerEmail(null)
+                .complaintCreatedDate(LocalDate.of(2026, 3, 20))
+                .complaintText("Meu login falha")
+                .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("O e-mail do cliente é obrigatório.");
     }
 }
