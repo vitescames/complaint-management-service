@@ -1,7 +1,6 @@
 package com.complaintmanagementservice.application.usecase;
 
 import com.complaintmanagementservice.TestFixtures;
-import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
 import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
 import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPort;
 import com.complaintmanagementservice.application.port.out.ComplaintSlaWarningMessagePort;
@@ -101,10 +100,6 @@ class SearchAndSlaUseCasesTest {
         SearchComplaintsQuery invalidStatusQuery = SearchComplaintsQuery.builder()
                 .statusIds(List.of(99))
                 .build();
-        SearchComplaintsQuery invalidDateRangeQuery = SearchComplaintsQuery.builder()
-                .startDate(LocalDate.of(2026, 4, 1))
-                .endDate(LocalDate.of(2026, 3, 1))
-                .build();
 
         assertThatThrownBy(() -> useCase.search(invalidCpfQuery))
                 .isInstanceOf(DomainValidationException.class)
@@ -112,9 +107,6 @@ class SearchAndSlaUseCasesTest {
         assertThatThrownBy(() -> useCase.search(invalidStatusQuery))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O status da reclamação é inválido.");
-        assertThatThrownBy(() -> useCase.search(invalidDateRangeQuery))
-                .isInstanceOf(BusinessRuleViolationException.class)
-                .hasMessage("A data inicial deve ser menor ou igual à data final.");
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.complaintmanagementservice.adapters.in.rest.error.ApiErrorResponse;
 import com.complaintmanagementservice.adapters.in.rest.error.ApiFieldError;
 import com.complaintmanagementservice.adapters.in.rest.error.ApiValidationErrorResponse;
 import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
+import com.complaintmanagementservice.application.exception.InputValidationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.validation.Valid;
@@ -131,6 +132,9 @@ class ApiExceptionHandlerTest {
         ApiErrorResponse business = handler.handleBusinessViolation(
                 new BusinessRuleViolationException("A data da reclamação não pode ser futura.")
         );
+        ApiErrorResponse inputValidation = handler.handleBusinessViolation(
+                new InputValidationException("A data inicial deve ser menor ou igual à data final.")
+        );
         ApiErrorResponse notFound = handler.handleReferenceDataNotFound(
                 new ReferenceDataNotFoundException("Categoria não encontrada.")
         );
@@ -138,6 +142,8 @@ class ApiExceptionHandlerTest {
 
         assertThat(business.status()).isEqualTo(422);
         assertThat(business.message()).isEqualTo("A data da reclamação não pode ser futura.");
+        assertThat(inputValidation.status()).isEqualTo(422);
+        assertThat(inputValidation.message()).isEqualTo("A data inicial deve ser menor ou igual à data final.");
         assertThat(notFound.status()).isEqualTo(404);
         assertThat(notFound.message()).isEqualTo("Categoria não encontrada.");
         assertThat(unexpected.status()).isEqualTo(500);

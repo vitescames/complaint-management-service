@@ -1,6 +1,5 @@
 package com.complaintmanagementservice.application.usecase;
 
-import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
 import com.complaintmanagementservice.application.port.in.SearchComplaintsUseCase;
 import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPort;
 import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
@@ -29,9 +28,5 @@ public class SearchComplaintsUseCaseImpl implements SearchComplaintsUseCase {
             new Cpf(query.customerCpf());
         }
         query.statusIds().forEach(ComplaintStatus::fromId);
-
-        if (query.startDate() != null && query.endDate() != null && query.startDate().isAfter(query.endDate())) {
-            throw new BusinessRuleViolationException("A data inicial deve ser menor ou igual à data final.");
-        }
     }
 }

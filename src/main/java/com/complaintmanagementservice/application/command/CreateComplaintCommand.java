@@ -1,5 +1,7 @@
 package com.complaintmanagementservice.application.command;
 
+import com.complaintmanagementservice.application.exception.InputValidationException;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -134,13 +136,13 @@ public final class CreateComplaintCommand {
 
         private void requireText(String value, String message) {
             if (value == null || value.isBlank()) {
-                throw new IllegalArgumentException(message);
+                throw new InputValidationException(message);
             }
         }
 
         private void requireValue(Object value, String message) {
             if (value == null) {
-                throw new IllegalArgumentException(message);
+                throw new InputValidationException(message);
             }
         }
     }

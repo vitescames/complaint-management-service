@@ -4,6 +4,7 @@ import com.complaintmanagementservice.adapters.in.rest.error.ApiErrorResponse;
 import com.complaintmanagementservice.adapters.in.rest.error.ApiFieldError;
 import com.complaintmanagementservice.adapters.in.rest.error.ApiValidationErrorResponse;
 import com.complaintmanagementservice.application.exception.BusinessRuleViolationException;
+import com.complaintmanagementservice.application.exception.InputValidationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
@@ -88,6 +89,7 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
     @ExceptionHandler({
             BusinessRuleViolationException.class,
+            InputValidationException.class,
             DomainValidationException.class
     })
     public ApiErrorResponse handleBusinessViolation(RuntimeException exception) {

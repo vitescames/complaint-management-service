@@ -1,5 +1,7 @@
 package com.complaintmanagementservice.application.query;
 
+import com.complaintmanagementservice.application.exception.InputValidationException;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -93,6 +95,7 @@ public final class SearchComplaintsQuery {
         }
 
         public SearchComplaintsQuery build() {
+            validateDateRange();
             return new SearchComplaintsQuery(this);
         }
 
@@ -108,6 +111,12 @@ public final class SearchComplaintsQuery {
                 }
             }
             return copiedValues;
+        }
+
+        private void validateDateRange() {
+            if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+                throw new InputValidationException("A data inicial deve ser menor ou igual à data final.");
+            }
         }
     }
 }

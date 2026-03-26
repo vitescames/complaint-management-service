@@ -1,6 +1,7 @@
 package com.complaintmanagementservice.application.command;
 
 import com.complaintmanagementservice.TestFixtures;
+import com.complaintmanagementservice.application.exception.InputValidationException;
 import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
 import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
 import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
@@ -135,19 +136,26 @@ class ApplicationCommandAndModelTest {
                 ;
 
         assertThatThrownBy(blankCpfBuilder::build)
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InputValidationException.class)
                 .hasMessage("O CPF do cliente é obrigatório.");
 
         assertThatThrownBy(blankTextBuilder::build)
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InputValidationException.class)
                 .hasMessage("O texto da reclamação é obrigatório.");
 
         assertThatThrownBy(nullBirthDateBuilder::build)
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InputValidationException.class)
                 .hasMessage("A data de nascimento do cliente é obrigatória.");
 
         assertThatThrownBy(nullEmailBuilder::build)
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InputValidationException.class)
                 .hasMessage("O e-mail do cliente é obrigatório.");
+
+        assertThatThrownBy(() -> SearchComplaintsQuery.builder()
+                .startDate(LocalDate.of(2026, 4, 1))
+                .endDate(LocalDate.of(2026, 3, 1))
+                .build())
+                .isInstanceOf(InputValidationException.class)
+                .hasMessage("A data inicial deve ser menor ou igual à data final.");
     }
 }
