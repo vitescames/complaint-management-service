@@ -24,9 +24,4 @@ public record ComplaintId(UUID value) {
             throw new DomainValidationException("O identificador da reclamação é inválido.");
         }
     }
-
-    @Override
-    public String toString() {
-        return value.toString();
-    }
 }

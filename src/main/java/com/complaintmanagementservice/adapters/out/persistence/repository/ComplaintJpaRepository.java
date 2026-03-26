@@ -1,6 +1,7 @@
 package com.complaintmanagementservice.adapters.out.persistence.repository;
 
 import com.complaintmanagementservice.adapters.out.persistence.entity.ComplaintEntity;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -12,6 +13,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+@NullMarked
 public interface ComplaintJpaRepository extends JpaRepository<ComplaintEntity, UUID>, JpaSpecificationExecutor<ComplaintEntity> {
 
     @Override

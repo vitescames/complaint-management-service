@@ -7,7 +7,6 @@ import jakarta.jms.Message;
 import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 import org.springframework.jms.support.converter.MessageConversionException;
 import org.springframework.jms.support.converter.MessageConverter;
 
@@ -53,7 +52,7 @@ public class JacksonTextMessageConverter implements MessageConverter {
     }
 
     private Class<?> resolveTargetType(Message message) throws JMSException, ClassNotFoundException {
-        @Nullable String typeName = message.getStringProperty(TYPE_ID_PROPERTY);
+        String typeName = message.getStringProperty(TYPE_ID_PROPERTY);
         if (typeName == null || typeName.isBlank()) {
             throw new MessageConversionException("JMS payload type header is missing");
         }
