@@ -7,7 +7,6 @@ import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -86,16 +85,18 @@ class ApplicationCommandAndModelTest {
     void shouldExposeImmutableCommandAndQueryCollections() {
         CreateComplaintCommand command = TestFixtures.createComplaintCommand();
         SearchComplaintsQuery query = TestFixtures.searchQuery();
-        List<String> documentUrls = new ArrayList<>(command.documentUrls());
-        List<String> categoryNames = new ArrayList<>(query.categoryNames());
+        List<String> documentUrls = command.documentUrls();
+        List<String> categoryNames = query.categoryNames();
 
-        assertThat(documentUrls).isEqualTo(List.of("https://example.com/doc-1"));
-        assertThat(categoryNames).containsExactly("acesso", "cobranca");
-        assertThat(query.statusIds()).containsExactly(1);
-        assertThatThrownBy(() -> documentUrls.add("https://example.com/doc-2"))
-                .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> categoryNames.add("fraude"))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThat(documentUrls)
+                .isEqualTo(List.of("https://example.com/doc-1"))
+                .isUnmodifiable();
+        assertThat(categoryNames)
+                .containsExactly("acesso", "cobranca")
+                .isUnmodifiable();
+        assertThat(query.statusIds())
+                .containsExactly(1)
+                .isUnmodifiable();
     }
 
     @Test

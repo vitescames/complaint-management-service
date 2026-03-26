@@ -31,7 +31,7 @@ class DomainModelTest {
         Category category = Category.builder().id(4L).name("acesso").keywords(Set.of(keyword)).build();
         Category categoryWithoutKeywords = Category.builder().id(5L).name("fraude").build();
 
-        assertThat(complaintId.toString()).isEqualTo("11111111-1111-1111-1111-111111111111");
+        assertThat(complaintId.value()).isEqualTo(UUID.fromString("11111111-1111-1111-1111-111111111111"));
         assertThat(cpf.value()).isEqualTo("52998224725");
         assertThat(cpfWithZeroDigit.value()).isEqualTo("10000000108");
         assertThat(emailAddress.value()).isEqualTo("user@example.com");
@@ -53,7 +53,7 @@ class DomainModelTest {
     }
 
     @Test
-    void shouldRejectInvalidValueObjectsAndEntities() {
+    void shouldRejectInvalidComplaintIdsAndCpfs() {
         assertThatThrownBy(() -> new ComplaintId(null))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O identificador da reclamação é obrigatório.");
@@ -75,6 +75,13 @@ class DomainModelTest {
         assertThatThrownBy(() -> new Cpf("52998224724"))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("CPF inválido.");
+    }
+
+    @Test
+    void shouldRejectInvalidTextualValueObjects() {
+        String oversizedCustomerName = "a".repeat(121);
+        String oversizedComplaintText = "a".repeat(4001);
+
         assertThatThrownBy(() -> new EmailAddress(null))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O e-mail é obrigatório.");
@@ -87,7 +94,7 @@ class DomainModelTest {
         assertThatThrownBy(() -> new CustomerName(" "))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O nome do cliente deve ter entre 1 e 120 caracteres.");
-        assertThatThrownBy(() -> new CustomerName("a".repeat(121)))
+        assertThatThrownBy(() -> new CustomerName(oversizedCustomerName))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O nome do cliente deve ter entre 1 e 120 caracteres.");
         assertThatThrownBy(() -> new ComplaintText(null))
@@ -96,9 +103,16 @@ class DomainModelTest {
         assertThatThrownBy(() -> new ComplaintText(" "))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O texto da reclamação deve ter entre 1 e 4000 caracteres.");
-        assertThatThrownBy(() -> new ComplaintText("a".repeat(4001)))
+        assertThatThrownBy(() -> new ComplaintText(oversizedComplaintText))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O texto da reclamação deve ter entre 1 e 4000 caracteres.");
+    }
+
+    @Test
+    void shouldRejectInvalidDocumentUrlsStatusesAndCategories() {
+        Long missingKeywordId = missingKeywordId();
+        String missingKeywordValue = missingKeywordValue();
+
         assertThatThrownBy(() -> new DocumentUrl(null))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("A URL do documento é obrigatória.");
@@ -117,58 +131,66 @@ class DomainModelTest {
         assertThatThrownBy(() -> ComplaintStatus.fromId(99))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O status da reclamação é inválido.");
-        assertThatThrownBy(() -> new CategoryKeyword(null, "login"))
+        assertThatThrownBy(() -> new CategoryKeyword(missingKeywordId, "login"))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O identificador da palavra-chave da categoria é obrigatório.");
-        assertThatThrownBy(() -> new CategoryKeyword(1L, null))
+        assertThatThrownBy(() -> new CategoryKeyword(1L, missingKeywordValue))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("A palavra-chave da categoria é obrigatória.");
         assertThatThrownBy(() -> new CategoryKeyword(1L, " "))
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("A palavra-chave da categoria é obrigatória.");
-        assertThatThrownBy(() -> Category.builder().name("acesso").build())
-                .isInstanceOf(DomainValidationException.class)
-                .hasMessage("O identificador da categoria é obrigatório.");
-        assertThatThrownBy(() -> Category.builder().id(1L).build())
-                .isInstanceOf(DomainValidationException.class)
-                .hasMessage("O nome da categoria é obrigatório.");
-        assertThatThrownBy(() -> Category.builder().id(1L).name(" ").keywords(Set.of()).build())
-                .isInstanceOf(DomainValidationException.class)
-                .hasMessage("O nome da categoria é obrigatório.");
-        assertThatThrownBy(() -> Customer.builder()
+    }
+
+    @Test
+    void shouldRejectInvalidCategoryAndCustomerConstruction() {
+        Category.Builder missingCategoryIdBuilder = Category.builder().name("acesso");
+        Category.Builder missingCategoryNameBuilder = Category.builder().id(1L);
+        Category.Builder blankCategoryNameBuilder = Category.builder().id(1L).name(" ").keywords(Set.of());
+        Customer.Builder missingCpfBuilder = Customer.builder()
                 .name(new CustomerName("Maria"))
                 .birthDate(LocalDate.of(1990, 6, 15))
-                .emailAddress(new EmailAddress("maria@example.com"))
-                .build())
-                .isInstanceOf(DomainValidationException.class)
-                .hasMessage("O CPF do cliente é obrigatório.");
-        assertThatThrownBy(() -> Customer.builder()
+                .emailAddress(new EmailAddress("maria@example.com"));
+        Customer.Builder missingNameBuilder = Customer.builder()
                 .cpf(new Cpf("52998224725"))
                 .birthDate(LocalDate.of(1990, 6, 15))
-                .emailAddress(new EmailAddress("maria@example.com"))
-                .build())
-                .isInstanceOf(DomainValidationException.class)
-                .hasMessage("O nome do cliente é obrigatório.");
-        assertThatThrownBy(() -> Customer.builder()
+                .emailAddress(new EmailAddress("maria@example.com"));
+        Customer.Builder missingBirthDateBuilder = Customer.builder()
                 .cpf(new Cpf("52998224725"))
                 .name(new CustomerName("Maria"))
-                .emailAddress(new EmailAddress("maria@example.com"))
-                .build())
-                .isInstanceOf(DomainValidationException.class)
-                .hasMessage("A data de nascimento do cliente é obrigatória.");
-        assertThatThrownBy(() -> Customer.builder()
+                .emailAddress(new EmailAddress("maria@example.com"));
+        Customer.Builder missingEmailBuilder = Customer.builder()
                 .cpf(new Cpf("52998224725"))
                 .name(new CustomerName("Maria"))
-                .birthDate(LocalDate.of(1990, 6, 15))
-                .build())
-                .isInstanceOf(DomainValidationException.class)
-                .hasMessage("O e-mail do cliente é obrigatório.");
-        assertThatThrownBy(() -> Customer.builder()
+                .birthDate(LocalDate.of(1990, 6, 15));
+        Customer.Builder futureBirthDateBuilder = Customer.builder()
                 .cpf(new Cpf("52998224725"))
                 .name(new CustomerName("Maria"))
                 .birthDate(LocalDate.now().plusDays(1))
-                .emailAddress(new EmailAddress("maria@example.com"))
-                .build())
+                .emailAddress(new EmailAddress("maria@example.com"));
+
+        assertThatThrownBy(missingCategoryIdBuilder::build)
+                .isInstanceOf(DomainValidationException.class)
+                .hasMessage("O identificador da categoria é obrigatório.");
+        assertThatThrownBy(missingCategoryNameBuilder::build)
+                .isInstanceOf(DomainValidationException.class)
+                .hasMessage("O nome da categoria é obrigatório.");
+        assertThatThrownBy(blankCategoryNameBuilder::build)
+                .isInstanceOf(DomainValidationException.class)
+                .hasMessage("O nome da categoria é obrigatório.");
+        assertThatThrownBy(missingCpfBuilder::build)
+                .isInstanceOf(DomainValidationException.class)
+                .hasMessage("O CPF do cliente é obrigatório.");
+        assertThatThrownBy(missingNameBuilder::build)
+                .isInstanceOf(DomainValidationException.class)
+                .hasMessage("O nome do cliente é obrigatório.");
+        assertThatThrownBy(missingBirthDateBuilder::build)
+                .isInstanceOf(DomainValidationException.class)
+                .hasMessage("A data de nascimento do cliente é obrigatória.");
+        assertThatThrownBy(missingEmailBuilder::build)
+                .isInstanceOf(DomainValidationException.class)
+                .hasMessage("O e-mail do cliente é obrigatório.");
+        assertThatThrownBy(futureBirthDateBuilder::build)
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("A data de nascimento do cliente não pode ser futura.");
     }
@@ -214,66 +236,68 @@ class DomainModelTest {
 
     @Test
     void shouldRejectIncompleteComplaintConstruction() {
-        assertThatThrownBy(() -> Complaint.builder()
+        Complaint.Builder missingClockBuilder = Complaint.builder()
                 .customer(TestFixtures.customer())
                 .complaintDate(LocalDate.of(2026, 3, 20))
                 .complaintText(new ComplaintText("texto"))
                 .categories(Set.of())
-                .buildNew())
+                ;
+        Complaint.Builder missingIdBuilder = Complaint.builder()
+                .customer(TestFixtures.customer())
+                .complaintDate(LocalDate.of(2026, 3, 20))
+                .complaintText(new ComplaintText("texto"))
+                .status(ComplaintStatus.PENDING)
+                .registeredAt(Instant.now());
+        Complaint.Builder missingCustomerBuilder = Complaint.builder()
+                .id(ComplaintId.newId())
+                .complaintDate(LocalDate.of(2026, 3, 20))
+                .complaintText(new ComplaintText("texto"))
+                .status(ComplaintStatus.PENDING)
+                .registeredAt(Instant.now());
+        Complaint.Builder missingComplaintDateBuilder = Complaint.builder()
+                .id(ComplaintId.newId())
+                .customer(TestFixtures.customer())
+                .complaintText(new ComplaintText("texto"))
+                .status(ComplaintStatus.PENDING)
+                .registeredAt(Instant.now());
+        Complaint.Builder missingComplaintTextBuilder = Complaint.builder()
+                .id(ComplaintId.newId())
+                .customer(TestFixtures.customer())
+                .complaintDate(LocalDate.of(2026, 3, 20))
+                .status(ComplaintStatus.PENDING)
+                .registeredAt(Instant.now());
+        Complaint.Builder missingStatusBuilder = Complaint.builder()
+                .id(ComplaintId.newId())
+                .customer(TestFixtures.customer())
+                .complaintDate(LocalDate.of(2026, 3, 20))
+                .complaintText(new ComplaintText("texto"))
+                .registeredAt(Instant.now());
+        Complaint.Builder missingRegisteredAtBuilder = Complaint.builder()
+                .id(ComplaintId.newId())
+                .customer(TestFixtures.customer())
+                .complaintDate(LocalDate.of(2026, 3, 20))
+                .complaintText(new ComplaintText("texto"))
+                .status(ComplaintStatus.PENDING);
+
+        assertThatThrownBy(missingClockBuilder::buildNew)
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O relógio de criação da reclamação é obrigatório.");
-        assertThatThrownBy(() -> Complaint.builder()
-                .customer(TestFixtures.customer())
-                .complaintDate(LocalDate.of(2026, 3, 20))
-                .complaintText(new ComplaintText("texto"))
-                .status(ComplaintStatus.PENDING)
-                .registeredAt(Instant.now())
-                .buildReconstituted())
+        assertThatThrownBy(missingIdBuilder::buildReconstituted)
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O identificador da reclamação é obrigatório.");
-        assertThatThrownBy(() -> Complaint.builder()
-                .id(ComplaintId.newId())
-                .complaintDate(LocalDate.of(2026, 3, 20))
-                .complaintText(new ComplaintText("texto"))
-                .status(ComplaintStatus.PENDING)
-                .registeredAt(Instant.now())
-                .buildReconstituted())
+        assertThatThrownBy(missingCustomerBuilder::buildReconstituted)
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O cliente da reclamação é obrigatório.");
-        assertThatThrownBy(() -> Complaint.builder()
-                .id(ComplaintId.newId())
-                .customer(TestFixtures.customer())
-                .complaintText(new ComplaintText("texto"))
-                .status(ComplaintStatus.PENDING)
-                .registeredAt(Instant.now())
-                .buildReconstituted())
+        assertThatThrownBy(missingComplaintDateBuilder::buildReconstituted)
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("A data da reclamação é obrigatória.");
-        assertThatThrownBy(() -> Complaint.builder()
-                .id(ComplaintId.newId())
-                .customer(TestFixtures.customer())
-                .complaintDate(LocalDate.of(2026, 3, 20))
-                .status(ComplaintStatus.PENDING)
-                .registeredAt(Instant.now())
-                .buildReconstituted())
+        assertThatThrownBy(missingComplaintTextBuilder::buildReconstituted)
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O texto da reclamação é obrigatório.");
-        assertThatThrownBy(() -> Complaint.builder()
-                .id(ComplaintId.newId())
-                .customer(TestFixtures.customer())
-                .complaintDate(LocalDate.of(2026, 3, 20))
-                .complaintText(new ComplaintText("texto"))
-                .registeredAt(Instant.now())
-                .buildReconstituted())
+        assertThatThrownBy(missingStatusBuilder::buildReconstituted)
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("O status da reclamação é obrigatório.");
-        assertThatThrownBy(() -> Complaint.builder()
-                .id(ComplaintId.newId())
-                .customer(TestFixtures.customer())
-                .complaintDate(LocalDate.of(2026, 3, 20))
-                .complaintText(new ComplaintText("texto"))
-                .status(ComplaintStatus.PENDING)
-                .buildReconstituted())
+        assertThatThrownBy(missingRegisteredAtBuilder::buildReconstituted)
                 .isInstanceOf(DomainValidationException.class)
                 .hasMessage("A data de registro da reclamação é obrigatória.");
     }
@@ -288,5 +312,13 @@ class DomainModelTest {
         assertThat(event.occurredAt()).isEqualTo(TestFixtures.FIXED_CLOCK.instant());
         assertThat(nullableEvent.complaintId()).isNull();
         assertThat(nullableEvent.occurredAt()).isNull();
+    }
+
+    private Long missingKeywordId() {
+        return null;
+    }
+
+    private String missingKeywordValue() {
+        return null;
     }
 }

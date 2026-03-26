@@ -13,7 +13,7 @@ public class ComplaintResponseMapper {
 
     public CreateComplaintRestResponse toCreateResponse(Complaint complaint) {
         return new CreateComplaintRestResponse(
-                complaint.id().toString(),
+                complaint.id().value().toString(),
                 complaint.status().id(),
                 complaint.status().name()
         );
@@ -21,7 +21,7 @@ public class ComplaintResponseMapper {
 
     public ComplaintSearchResponse toSearchResponse(Complaint complaint) {
         return new ComplaintSearchResponse(
-                complaint.id().toString(),
+                complaint.id().value().toString(),
                 complaint.complaintDate(),
                 complaint.complaintText().value(),
                 new ComplaintSearchResponse.StatusPayload(complaint.status().id(), complaint.status().name()),
