@@ -12,6 +12,7 @@ import com.complaintmanagementservice.domain.event.DomainEvent;
 import com.complaintmanagementservice.domain.service.ComplaintCategoryClassifier;
 import com.complaintmanagementservice.domain.service.ComplaintSlaPolicy;
 import com.complaintmanagementservice.infrastructure.messaging.JacksonTextMessageConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 import org.apache.activemq.ActiveMQConnectionFactory;
@@ -58,6 +59,7 @@ class InfrastructureConfigurationTest {
         };
 
         assertThat(applicationConfiguration.clock()).isNotNull();
+        assertThat(applicationConfiguration.objectMapper()).isInstanceOf(ObjectMapper.class);
         assertThat(applicationConfiguration.complaintCategoryClassifier()).isInstanceOf(ComplaintCategoryClassifier.class);
         assertThat(applicationConfiguration.complaintSlaPolicy()).isInstanceOf(ComplaintSlaPolicy.class);
         assertThat(resilientExecutor).isNotNull();

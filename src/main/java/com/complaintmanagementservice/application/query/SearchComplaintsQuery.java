@@ -1,5 +1,7 @@
 package com.complaintmanagementservice.application.query;
 
+import com.complaintmanagementservice.application.exception.InputValidationException;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,12 +75,12 @@ public final class SearchComplaintsQuery {
         }
 
         public Builder categoryNames(List<String> categoryNames) {
-            this.categoryNames = categoryNames == null ? List.of() : new ArrayList<>(categoryNames);
+            this.categoryNames = copyValues(categoryNames);
             return this;
         }
 
         public Builder statusIds(List<Integer> statusIds) {
-            this.statusIds = statusIds == null ? List.of() : new ArrayList<>(statusIds);
+            this.statusIds = copyValues(statusIds);
             return this;
         }
 
@@ -93,7 +95,28 @@ public final class SearchComplaintsQuery {
         }
 
         public SearchComplaintsQuery build() {
+            validateDateRange();
             return new SearchComplaintsQuery(this);
+        }
+
+        private <T> List<T> copyValues(List<T> values) {
+            if (values == null) {
+                return List.of();
+            }
+
+            List<T> copiedValues = new ArrayList<>();
+            for (T value : values) {
+                if (value != null) {
+                    copiedValues.add(value);
+                }
+            }
+            return copiedValues;
+        }
+
+        private void validateDateRange() {
+            if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+                throw new InputValidationException("A data inicial deve ser menor ou igual à data final.");
+            }
         }
     }
 }

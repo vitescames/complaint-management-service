@@ -1,7 +1,6 @@
 package com.complaintmanagementservice.domain.model;
 
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
-import org.jspecify.annotations.NonNull;
 
 import java.util.UUID;
 
@@ -24,10 +23,5 @@ public record ComplaintId(UUID value) {
         catch (IllegalArgumentException exception) {
             throw new DomainValidationException("O identificador da reclamação é inválido.");
         }
-    }
-
-    @Override
-    public @NonNull String toString() {
-        return value.toString();
     }
 }

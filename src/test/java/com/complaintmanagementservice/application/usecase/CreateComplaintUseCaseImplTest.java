@@ -106,7 +106,7 @@ class CreateComplaintUseCaseImplTest {
     }
 
     @Test
-    void shouldDelegateNullComplaintDateValidationToDomain() {
+    void shouldDelegateInvalidDocumentUrlValidationToDomain() {
         CreateComplaintUseCaseImpl useCase = new CreateComplaintUseCaseImpl(
                 categoryCatalogPort,
                 complaintRepositoryPort,
@@ -120,13 +120,14 @@ class CreateComplaintUseCaseImplTest {
                 .customerName("Maria Silva")
                 .customerBirthDate(LocalDate.of(1990, 6, 15))
                 .customerEmail("maria.silva@example.com")
-                .complaintCreatedDate(null)
+                .complaintCreatedDate(LocalDate.of(2026, 3, 20))
                 .complaintText("Meu login falha")
+                .documentUrls(List.of("ftp://example.com/documento"))
                 .build();
 
         assertThatThrownBy(() -> useCase.create(command))
                 .isInstanceOf(DomainValidationException.class)
-                .hasMessage("A data da reclamação é obrigatória.");
+                .hasMessage("A URL do documento deve ser HTTP ou HTTPS absoluta.");
     }
 
     @Test

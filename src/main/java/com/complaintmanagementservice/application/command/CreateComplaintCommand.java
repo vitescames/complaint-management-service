@@ -1,5 +1,7 @@
 package com.complaintmanagementservice.application.command;
 
+import com.complaintmanagementservice.application.exception.InputValidationException;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -100,12 +102,48 @@ public final class CreateComplaintCommand {
         }
 
         public Builder documentUrls(List<String> documentUrls) {
-            this.documentUrls = documentUrls == null ? List.of() : new ArrayList<>(documentUrls);
+            this.documentUrls = copyDocumentUrls(documentUrls);
             return this;
         }
 
         public CreateComplaintCommand build() {
+            validateRequiredFields();
             return new CreateComplaintCommand(this);
+        }
+
+        private void validateRequiredFields() {
+            requireText(customerCpf, "O CPF do cliente é obrigatório.");
+            requireText(customerName, "O nome do cliente é obrigatório.");
+            requireValue(customerBirthDate, "A data de nascimento do cliente é obrigatória.");
+            requireText(customerEmail, "O e-mail do cliente é obrigatório.");
+            requireValue(complaintCreatedDate, "A data da reclamação é obrigatória.");
+            requireText(complaintText, "O texto da reclamação é obrigatório.");
+        }
+
+        private List<String> copyDocumentUrls(List<String> documentUrls) {
+            if (documentUrls == null) {
+                return List.of();
+            }
+
+            List<String> copiedDocumentUrls = new ArrayList<>();
+            for (String documentUrl : documentUrls) {
+                if (documentUrl != null) {
+                    copiedDocumentUrls.add(documentUrl);
+                }
+            }
+            return copiedDocumentUrls;
+        }
+
+        private void requireText(String value, String message) {
+            if (value == null || value.isBlank()) {
+                throw new InputValidationException(message);
+            }
+        }
+
+        private void requireValue(Object value, String message) {
+            if (value == null) {
+                throw new InputValidationException(message);
+            }
         }
     }
 }
