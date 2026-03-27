@@ -140,6 +140,9 @@ class ApplicationCommandAndModelTest {
                 .complaintCreatedDate(LocalDate.of(2026, 3, 20))
                 .complaintText("Meu login falha")
                 ;
+        SearchComplaintsQuery.Builder invalidDateRangeBuilder = SearchComplaintsQuery.builder()
+                .startDate(LocalDate.of(2026, 4, 1))
+                .endDate(LocalDate.of(2026, 3, 1));
 
         assertThatThrownBy(blankCpfBuilder::build)
                 .isInstanceOf(InputValidationException.class)
@@ -157,10 +160,7 @@ class ApplicationCommandAndModelTest {
                 .isInstanceOf(InputValidationException.class)
                 .hasMessage("O e-mail do cliente é obrigatório.");
 
-        assertThatThrownBy(() -> SearchComplaintsQuery.builder()
-                .startDate(LocalDate.of(2026, 4, 1))
-                .endDate(LocalDate.of(2026, 3, 1))
-                .build())
+        assertThatThrownBy(invalidDateRangeBuilder::build)
                 .isInstanceOf(InputValidationException.class)
                 .hasMessage("A data inicial deve ser menor ou igual à data final.");
     }

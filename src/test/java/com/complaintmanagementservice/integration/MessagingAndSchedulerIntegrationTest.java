@@ -26,7 +26,6 @@ class MessagingAndSchedulerIntegrationTest extends IntegrationTestSupport {
     @Test
     void shouldConsumeReceivedQueueMessageCreateComplaintAndPublishCreatedEvent() {
         CreateComplaintQueueMessage message = validQueueMessage(
-                "Não consigo acessar o app e a fatura veio com valor indevido."
         );
 
         jmsTemplate.convertAndSend(messagingProperties.queues().complaintReceived(), message);

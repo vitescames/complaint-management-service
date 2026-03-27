@@ -125,8 +125,9 @@ abstract class IntegrationTestSupport {
     }
 
     protected void drainQueue(String queueName) {
-        while (jmsTemplate.receive(queueName) != null) {
-            // Drain queue messages between tests to keep assertions deterministic.
+        Message drainedMessage = jmsTemplate.receive(queueName);
+        while (drainedMessage != null) {
+            drainedMessage = jmsTemplate.receive(queueName);
         }
     }
 
@@ -189,14 +190,14 @@ abstract class IntegrationTestSupport {
         return complaintRepositoryPort.save(complaint);
     }
 
-    protected CreateComplaintQueueMessage validQueueMessage(String description) {
+    protected CreateComplaintQueueMessage validQueueMessage() {
         return new CreateComplaintQueueMessage(
                 "52998224725",
                 "Maria da Silva",
                 LocalDate.of(1990, 6, 15),
                 "maria.silva@example.com",
                 LocalDate.of(2026, 3, 20),
-                description
+                "Não consigo acessar o app e a fatura veio com valor indevido."
         );
     }
 
@@ -283,12 +284,9 @@ abstract class IntegrationTestSupport {
     }
 
     private void sleepBriefly() {
-        try {
-            Thread.sleep(100);
-        }
-        catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new AssertionError("Integration test polling was interrupted", exception);
+        java.util.concurrent.locks.LockSupport.parkNanos(java.time.Duration.ofMillis(100).toNanos());
+        if (Thread.currentThread().isInterrupted()) {
+            throw new AssertionError("Integration test polling was interrupted");
         }
     }
 
