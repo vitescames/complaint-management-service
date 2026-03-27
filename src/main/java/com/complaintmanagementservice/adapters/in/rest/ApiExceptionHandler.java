@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Comparator;
 import java.util.List;
@@ -107,6 +108,16 @@ public class ApiExceptionHandler {
                 HttpStatus.NOT_FOUND,
                 RESOURCE_NOT_FOUND_TITLE,
                 exception.getMessage()
+        );
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ApiErrorResponse handleNoResourceFound(NoResourceFoundException ignored) {
+        return toApiErrorResponse(
+                HttpStatus.NOT_FOUND,
+                RESOURCE_NOT_FOUND_TITLE,
+                "Recurso não encontrado."
         );
     }
 

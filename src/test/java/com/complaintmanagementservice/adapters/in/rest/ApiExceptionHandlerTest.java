@@ -7,14 +7,15 @@ import com.complaintmanagementservice.application.exception.BusinessRuleViolatio
 import com.complaintmanagementservice.application.exception.InputValidationException;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import jakarta.validation.Valid;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Valid;
 import jakarta.validation.Validation;
 import jakarta.validation.constraints.NotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpInputMessage;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.lang.reflect.Method;
 import java.time.LocalDate;
@@ -36,44 +38,42 @@ import static org.mockito.Mockito.when;
 
 class ApiExceptionHandlerTest {
 
+    private static final String INVALID_FORMAT_MESSAGE = "Formato inv\u00E1lido";
+    private static final String INVALID_DATE_MESSAGE = "Data inv\u00E1lida";
+    private static final String REQUIRED_MESSAGE = "N\u00E3o pode ser nulo ou vazio";
+    private static final String UNREADABLE_REQUEST_MESSAGE = "N\u00E3o foi poss\u00EDvel interpretar a requisi\u00E7\u00E3o enviada.";
+
     private final ApiExceptionHandler handler = new ApiExceptionHandler();
 
     @Test
     void shouldBuildValidationErrorResponses() throws Exception {
         BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Payload(), "payload");
-        bindingResult.addError(new FieldError("payload", "email", "Formato inválido"));
-        bindingResult.addError(new FieldError("payload", "cpf", "Formato inválido"));
+        bindingResult.addError(new FieldError("payload", "email", INVALID_FORMAT_MESSAGE));
+        bindingResult.addError(new FieldError("payload", "cpf", INVALID_FORMAT_MESSAGE));
 
         ApiValidationErrorResponse bindResponse = handler.handleValidationErrors(new BindException(bindingResult));
         ApiValidationErrorResponse methodResponse = handler.handleValidationErrors(
                 new MethodArgumentNotValidException(validationMethodParameter(), bindingResult)
         );
-
-        ConstraintViolation<?> violation = nestedStartDateViolation();
         ApiValidationErrorResponse constraintResponse = handler.handleValidationErrors(
-                new ConstraintViolationException(Set.of(violation))
+                new ConstraintViolationException(Set.of(nestedStartDateViolation()))
         );
-        ConstraintViolation<?> rootViolation = rootStartDateViolation();
         ApiValidationErrorResponse rootConstraintResponse = handler.handleValidationErrors(
-                new ConstraintViolationException(Set.of(rootViolation))
+                new ConstraintViolationException(Set.of(rootStartDateViolation()))
         );
         ApiValidationErrorResponse fallbackResponse = handler.handleValidationErrors(new RuntimeException("unexpected"));
 
         assertThat(bindResponse.status()).isEqualTo(400);
         assertThat(bindResponse.errors()).containsExactly(
-                new ApiFieldError("cpf", "Formato inválido"),
-                new ApiFieldError("email", "Formato inválido")
+                new ApiFieldError("cpf", INVALID_FORMAT_MESSAGE),
+                new ApiFieldError("email", INVALID_FORMAT_MESSAGE)
         );
         assertThat(methodResponse.errors()).containsExactly(
-                new ApiFieldError("cpf", "Formato inválido"),
-                new ApiFieldError("email", "Formato inválido")
+                new ApiFieldError("cpf", INVALID_FORMAT_MESSAGE),
+                new ApiFieldError("email", INVALID_FORMAT_MESSAGE)
         );
-        assertThat(constraintResponse.errors()).containsExactly(
-                new ApiFieldError("startDate", "Data inválida")
-        );
-        assertThat(rootConstraintResponse.errors()).containsExactly(
-                new ApiFieldError("startDate", "Formato inválido")
-        );
+        assertThat(constraintResponse.errors()).containsExactly(new ApiFieldError("startDate", INVALID_DATE_MESSAGE));
+        assertThat(rootConstraintResponse.errors()).containsExactly(new ApiFieldError("startDate", INVALID_FORMAT_MESSAGE));
         assertThat(fallbackResponse.errors()).isEmpty();
     }
 
@@ -82,9 +82,11 @@ class ApiExceptionHandlerTest {
         MethodArgumentTypeMismatchException mismatchException = mock(MethodArgumentTypeMismatchException.class);
         when(mismatchException.getName()).thenReturn("startDate");
         doReturn(LocalDate.class).when(mismatchException).getRequiredType();
+
         MethodArgumentTypeMismatchException numericMismatchException = mock(MethodArgumentTypeMismatchException.class);
         when(numericMismatchException.getName()).thenReturn("status");
         doReturn(Integer.class).when(numericMismatchException).getRequiredType();
+
         MethodArgumentTypeMismatchException unknownMismatchException = mock(MethodArgumentTypeMismatchException.class);
         when(unknownMismatchException.getName()).thenReturn("customerCpf");
         doReturn(null).when(unknownMismatchException).getRequiredType();
@@ -109,43 +111,41 @@ class ApiExceptionHandlerTest {
         );
 
         assertThat(fieldErrorResponse.status()).isEqualTo(400);
-        assertThat(fieldErrorResponse.errors())
-                .containsExactly(new ApiFieldError("startDate", "Data inválida"));
-        assertThat(numericFieldErrorResponse.errors())
-                .containsExactly(new ApiFieldError("status", "Formato inválido"));
-        assertThat(unknownFieldErrorResponse.errors())
-                .containsExactly(new ApiFieldError("customerCpf", "Formato inválido"));
-        assertThat(missingParameterResponse.errors())
-                .containsExactly(new ApiFieldError("status", "Não pode ser nulo ou vazio"));
+        assertThat(fieldErrorResponse.errors()).containsExactly(new ApiFieldError("startDate", INVALID_DATE_MESSAGE));
+        assertThat(numericFieldErrorResponse.errors()).containsExactly(new ApiFieldError("status", INVALID_FORMAT_MESSAGE));
+        assertThat(unknownFieldErrorResponse.errors()).containsExactly(new ApiFieldError("customerCpf", INVALID_FORMAT_MESSAGE));
+        assertThat(missingParameterResponse.errors()).containsExactly(new ApiFieldError("status", REQUIRED_MESSAGE));
         assertThat(unreadableDateResponse.errors())
-                .containsExactly(new ApiFieldError("complaintCreatedDate", "Data inválida"));
-        assertThat(unreadableStringResponse.errors())
-                .containsExactly(new ApiFieldError("status", "Formato inválido"));
-        assertThat(unreadableUnknownFieldResponse.message())
-                .isEqualTo("Não foi possível interpretar a requisição enviada.");
-        assertThat(malformedJsonResponse.message())
-                .isEqualTo("Não foi possível interpretar a requisição enviada.");
+                .containsExactly(new ApiFieldError("complaintCreatedDate", INVALID_DATE_MESSAGE));
+        assertThat(unreadableStringResponse.errors()).containsExactly(new ApiFieldError("status", INVALID_FORMAT_MESSAGE));
+        assertThat(unreadableUnknownFieldResponse.message()).isEqualTo(UNREADABLE_REQUEST_MESSAGE);
+        assertThat(malformedJsonResponse.message()).isEqualTo(UNREADABLE_REQUEST_MESSAGE);
     }
 
     @Test
-    void shouldBuildMappedBusinessResponses() {
+    void shouldBuildMappedResponses() {
         ApiErrorResponse business = handler.handleBusinessViolation(
-                new BusinessRuleViolationException("A data da reclamação não pode ser futura.")
+                new BusinessRuleViolationException("A data da reclama\u00E7\u00E3o n\u00E3o pode ser futura.")
         );
         ApiErrorResponse inputValidation = handler.handleBusinessViolation(
-                new InputValidationException("A data inicial deve ser menor ou igual à data final.")
+                new InputValidationException("A data inicial deve ser menor ou igual \u00E0 data final.")
         );
         ApiErrorResponse notFound = handler.handleReferenceDataNotFound(
-                new ReferenceDataNotFoundException("Categoria não encontrada.")
+                new ReferenceDataNotFoundException("Categoria n\u00E3o encontrada.")
+        );
+        ApiErrorResponse routeNotFound = handler.handleNoResourceFound(
+                new NoResourceFoundException(HttpMethod.GET, "/rota-inexistente", null)
         );
         ApiErrorResponse unexpected = handler.handleUnexpectedError(new RuntimeException("boom"));
 
         assertThat(business.status()).isEqualTo(422);
-        assertThat(business.message()).isEqualTo("A data da reclamação não pode ser futura.");
+        assertThat(business.message()).isEqualTo("A data da reclama\u00E7\u00E3o n\u00E3o pode ser futura.");
         assertThat(inputValidation.status()).isEqualTo(422);
-        assertThat(inputValidation.message()).isEqualTo("A data inicial deve ser menor ou igual à data final.");
+        assertThat(inputValidation.message()).isEqualTo("A data inicial deve ser menor ou igual \u00E0 data final.");
         assertThat(notFound.status()).isEqualTo(404);
-        assertThat(notFound.message()).isEqualTo("Categoria não encontrada.");
+        assertThat(notFound.message()).isEqualTo("Categoria n\u00E3o encontrada.");
+        assertThat(routeNotFound.status()).isEqualTo(404);
+        assertThat(routeNotFound.message()).isEqualTo("Recurso n\u00E3o encontrado.");
         assertThat(unexpected.status()).isEqualTo(500);
         assertThat(unexpected.message()).isEqualTo("Ocorreu um erro interno. Tente novamente mais tarde.");
     }
@@ -154,11 +154,18 @@ class ApiExceptionHandlerTest {
     void shouldDeclareExpectedResponseStatuses() throws Exception {
         assertThat(responseStatusOf("handleValidationErrors", Exception.class)).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(responseStatusOf("handleTypeMismatch", MethodArgumentTypeMismatchException.class)).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(responseStatusOf("handleMissingRequestParameter", MissingServletRequestParameterException.class)).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(responseStatusOf("handleUnreadableRequest", HttpMessageNotReadableException.class)).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(responseStatusOf("handleBusinessViolation", RuntimeException.class)).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
-        assertThat(responseStatusOf("handleReferenceDataNotFound", ReferenceDataNotFoundException.class)).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(responseStatusOf("handleUnexpectedError", Exception.class)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(responseStatusOf("handleMissingRequestParameter", MissingServletRequestParameterException.class))
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(responseStatusOf("handleUnreadableRequest", HttpMessageNotReadableException.class))
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(responseStatusOf("handleBusinessViolation", RuntimeException.class))
+                .isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+        assertThat(responseStatusOf("handleReferenceDataNotFound", ReferenceDataNotFoundException.class))
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(responseStatusOf("handleNoResourceFound", NoResourceFoundException.class))
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(responseStatusOf("handleUnexpectedError", Exception.class))
+                .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private ConstraintViolation<?> nestedStartDateViolation() {
@@ -222,20 +229,11 @@ class ApiExceptionHandlerTest {
     }
 
     private record NestedValidationPayload(@Valid InvalidDatePayload search) {
-            private NestedValidationPayload(InvalidDatePayload search) {
-                this.search = search;
-            }
-        }
+    }
 
-    private record InvalidDatePayload(@NotNull(message = "Data inválida") LocalDate startDate) {
-            private InvalidDatePayload(LocalDate startDate) {
-                this.startDate = startDate;
-            }
-        }
+    private record InvalidDatePayload(@NotNull(message = INVALID_DATE_MESSAGE) LocalDate startDate) {
+    }
 
-    private record InvalidFormatPayload(@NotNull(message = "Formato inválido") LocalDate startDate) {
-            private InvalidFormatPayload(LocalDate startDate) {
-                this.startDate = startDate;
-            }
-        }
+    private record InvalidFormatPayload(@NotNull(message = INVALID_FORMAT_MESSAGE) LocalDate startDate) {
+    }
 }
