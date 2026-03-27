@@ -1,4 +1,4 @@
-package com.complaintmanagementservice.infrastructure.config;
+package com.complaintmanagementservice.adapters.out.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

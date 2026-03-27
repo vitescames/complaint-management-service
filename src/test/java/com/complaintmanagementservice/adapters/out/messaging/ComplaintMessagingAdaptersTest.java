@@ -1,9 +1,9 @@
 package com.complaintmanagementservice.adapters.out.messaging;
 
 import com.complaintmanagementservice.TestFixtures;
-import com.complaintmanagementservice.infrastructure.config.MessagingProperties;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
+import com.complaintmanagementservice.adapters.out.config.MessagingProperties;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

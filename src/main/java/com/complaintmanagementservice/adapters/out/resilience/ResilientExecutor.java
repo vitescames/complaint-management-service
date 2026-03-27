@@ -1,4 +1,4 @@
-package com.complaintmanagementservice.infrastructure.resilience;
+package com.complaintmanagementservice.adapters.out.resilience;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;

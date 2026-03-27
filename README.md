@@ -37,11 +37,12 @@ The codebase is organized around these macro layers:
 - `adapters.out`
   - Persistence implementation with JPA entities and Spring Data repositories
   - Messaging publishers for queue notifications
-- `infrastructure`
-  - Spring configuration
+- `root package`
+  - Application bean wiring
+- `adapters.out.config`
   - Embedded ActiveMQ setup
-  - Custom JMS message conversion
-  - Scheduler
+  - Configuration properties
+- `adapters.out.resilience`
   - Resilience support
 
 ### High-level flow
@@ -104,11 +105,13 @@ src/main/java/com/complaintmanagementservice
 |   |   |-- rest
 |   |   `-- scheduler
 |   `-- out
+|       |-- config
 |       |-- messaging
-|       `-- persistence
+|       |-- persistence
+|       `-- resilience
+|-- ApplicationConfiguration.java
 |-- application
-|-- domain
-`-- infrastructure
+`-- domain
 ```
 
 ## Running Locally
@@ -535,9 +538,9 @@ Profiles are configured in `src/main/resources/application.yml` for:
 - Scheduler:
   - `src/main/java/com/complaintmanagementservice/adapters/in/scheduler/SlaWarningScheduler.java`
 - Messaging configuration:
-  - `src/main/java/com/complaintmanagementservice/infrastructure/config/MessagingConfiguration.java`
+  - `src/main/java/com/complaintmanagementservice/adapters/out/config/MessagingConfiguration.java`
 - Application configuration:
-  - `src/main/java/com/complaintmanagementservice/infrastructure/config/ApplicationConfiguration.java`
+  - `src/main/java/com/complaintmanagementservice/ApplicationConfiguration.java`
 - Flyway migration:
   - `src/main/resources/db/migration/V1__create_schema.sql`
 

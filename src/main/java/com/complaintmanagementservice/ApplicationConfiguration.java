@@ -1,5 +1,8 @@
-package com.complaintmanagementservice.infrastructure.config;
+package com.complaintmanagementservice;
 
+import com.complaintmanagementservice.adapters.out.config.ResilienceProperties;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import com.complaintmanagementservice.application.event.DomainEventObserver;
 import com.complaintmanagementservice.application.event.DomainEventPublisher;
 import com.complaintmanagementservice.application.event.ObserverDomainEventPublisher;
@@ -15,8 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.complaintmanagementservice.domain.event.DomainEvent;
 import com.complaintmanagementservice.domain.service.ComplaintCategoryClassifier;
 import com.complaintmanagementservice.domain.service.ComplaintSlaPolicy;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;

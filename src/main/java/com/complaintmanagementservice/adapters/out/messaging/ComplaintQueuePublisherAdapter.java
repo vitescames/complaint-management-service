@@ -4,9 +4,9 @@ import com.complaintmanagementservice.application.port.out.ComplaintCreatedMessa
 import com.complaintmanagementservice.application.port.out.ComplaintSlaWarningMessagePort;
 import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
 import com.complaintmanagementservice.domain.event.ComplaintSlaWarningTriggeredDomainEvent;
-import com.complaintmanagementservice.infrastructure.config.MessagingProperties;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
+import com.complaintmanagementservice.adapters.out.config.MessagingProperties;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
 

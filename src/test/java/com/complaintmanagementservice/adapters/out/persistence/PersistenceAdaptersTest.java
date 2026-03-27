@@ -12,7 +12,7 @@ import com.complaintmanagementservice.adapters.out.persistence.repository.Compla
 import com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintStatusJpaRepository;
 import com.complaintmanagementservice.adapters.out.persistence.repository.CustomerJpaRepository;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,5 +1,10 @@
-package com.complaintmanagementservice.infrastructure.config;
+package com.complaintmanagementservice;
 
+import com.complaintmanagementservice.adapters.out.config.MessagingConfiguration;
+import com.complaintmanagementservice.adapters.out.config.MessagingProperties;
+import com.complaintmanagementservice.adapters.out.config.ResilienceProperties;
+import com.complaintmanagementservice.adapters.out.messaging.JacksonTextMessageConverter;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
 import com.complaintmanagementservice.application.event.DomainEventObserver;
 import com.complaintmanagementservice.application.event.DomainEventPublisher;
 import com.complaintmanagementservice.application.port.in.CreateComplaintUseCase;
@@ -10,7 +15,6 @@ import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPo
 import com.complaintmanagementservice.domain.event.DomainEvent;
 import com.complaintmanagementservice.domain.service.ComplaintCategoryClassifier;
 import com.complaintmanagementservice.domain.service.ComplaintSlaPolicy;
-import com.complaintmanagementservice.infrastructure.messaging.JacksonTextMessageConverter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
@@ -33,7 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class InfrastructureConfigurationTest {
+class ApplicationConfigurationTest {
 
     private final ApplicationConfiguration applicationConfiguration = new ApplicationConfiguration();
     private final MessagingConfiguration messagingConfiguration = new MessagingConfiguration();
@@ -62,7 +66,7 @@ class InfrastructureConfigurationTest {
         assertThat(applicationConfiguration.complaintCategoryClassifier()).isInstanceOf(ComplaintCategoryClassifier.class);
         assertThat(applicationConfiguration.complaintSlaPolicy()).isInstanceOf(ComplaintSlaPolicy.class);
         assertThat(resilientExecutor).isNotNull();
-        assertThat(resilientExecutor.isCallPermitted(com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile.PERSISTENCE)).isTrue();
+        assertThat(resilientExecutor.isCallPermitted(ResilienceProfile.PERSISTENCE)).isTrue();
 
         DomainEventPublisher domainEventPublisher = applicationConfiguration.domainEventPublisher(List.of(observer));
         CreateComplaintUseCase createComplaintUseCase = applicationConfiguration.createComplaintUseCase(
@@ -72,7 +76,8 @@ class InfrastructureConfigurationTest {
                 new ComplaintCategoryClassifier(),
                 applicationConfiguration.clock()
         );
-        SearchComplaintsUseCase searchComplaintsUseCase = applicationConfiguration.searchComplaintsUseCase(mock(ComplaintRepositoryPort.class));
+        SearchComplaintsUseCase searchComplaintsUseCase =
+                applicationConfiguration.searchComplaintsUseCase(mock(ComplaintRepositoryPort.class));
         PublishSlaWarningsUseCase publishSlaWarningsUseCase = applicationConfiguration.publishSlaWarningsUseCase(
                 mock(ComplaintRepositoryPort.class),
                 domainEventPublisher,
@@ -96,7 +101,7 @@ class InfrastructureConfigurationTest {
         BrokerService brokerService = messagingConfiguration.embeddedBroker(properties);
         ActiveMQConnectionFactory connectionFactory =
                 (ActiveMQConnectionFactory) messagingConfiguration.connectionFactory(properties);
-        MessageConverter messageConverter = messagingConfiguration.messageConverter(new com.fasterxml.jackson.databind.ObjectMapper());
+        MessageConverter messageConverter = messagingConfiguration.messageConverter(new ObjectMapper());
         DefaultJmsListenerContainerFactory factory =
                 messagingConfiguration.complaintListenerContainerFactory(connectionFactory, messageConverter);
         ErrorHandler errorHandler = (ErrorHandler) ReflectionTestUtils.getField(factory, "errorHandler");
@@ -126,8 +131,7 @@ class InfrastructureConfigurationTest {
     @Test
     void shouldSerializeAndDeserializeJmsMessages() throws Exception {
         JacksonTextMessageConverter converter = new JacksonTextMessageConverter(
-                new com.fasterxml.jackson.databind.ObjectMapper()
-                        .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                new ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
         );
         Session session = mock(Session.class);
         TextMessage textMessage = mock(TextMessage.class);
