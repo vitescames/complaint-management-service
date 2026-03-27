@@ -1,9 +1,9 @@
 package com.complaintmanagementservice.adapters.out.messaging;
 
 import com.complaintmanagementservice.TestFixtures;
-import com.complaintmanagementservice.infrastructure.config.MessagingProperties;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
+import com.complaintmanagementservice.adapters.out.config.MessagingProperties;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,8 +34,8 @@ class ComplaintMessagingAdaptersTest {
 
         assertThat(mapper.toComplaintCreatedMessage(TestFixtures.complaintCreatedDomainEvent()).complaintId())
                 .isEqualTo(TestFixtures.complaint().id().value());
-        assertThat(mapper.toSlaWarningMessage(TestFixtures.complaintSlaWarningNotification()).slaDeadlineDate())
-                .isEqualTo(TestFixtures.complaintSlaWarningNotification().slaDeadlineDate());
+        assertThat(mapper.toSlaWarningMessage(TestFixtures.complaintSlaWarningTriggeredDomainEvent()).slaDeadlineDate())
+                .isEqualTo(TestFixtures.complaintSlaWarningTriggeredDomainEvent().slaDeadlineDate());
     }
 
     @Test
@@ -58,7 +58,7 @@ class ComplaintMessagingAdaptersTest {
         }).when(resilientExecutor).executeRunnable(eq(ResilienceProfile.MESSAGING), any(Runnable.class));
 
         adapter.publish(TestFixtures.complaintCreatedDomainEvent());
-        adapter.publish(TestFixtures.complaintSlaWarningNotification());
+        adapter.publish(TestFixtures.complaintSlaWarningTriggeredDomainEvent());
 
         verify(resilientExecutor, org.mockito.Mockito.times(2))
                 .executeRunnable(eq(ResilienceProfile.MESSAGING), any(Runnable.class));
@@ -101,11 +101,11 @@ class ComplaintMessagingAdaptersTest {
                 new ComplaintMessagePayloadMapper(),
                 resilientExecutor
         );
-        var notification = TestFixtures.complaintSlaWarningNotification();
+        var event = TestFixtures.complaintSlaWarningTriggeredDomainEvent();
         doThrow(new IllegalStateException("broker down")).when(resilientExecutor)
                 .executeRunnable(eq(ResilienceProfile.MESSAGING), any(Runnable.class));
 
-        assertThatThrownBy(() -> adapter.publish(notification))
+        assertThatThrownBy(() -> adapter.publish(event))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("broker down");
     }

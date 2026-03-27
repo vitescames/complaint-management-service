@@ -1,8 +1,8 @@
 package com.complaintmanagementservice.application.port.out;
 
-import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
+import com.complaintmanagementservice.domain.event.ComplaintSlaWarningTriggeredDomainEvent;
 
 public interface ComplaintSlaWarningMessagePort {
 
-    void publish(ComplaintSlaWarningNotification notification);
+    void publish(ComplaintSlaWarningTriggeredDomainEvent event);
 }

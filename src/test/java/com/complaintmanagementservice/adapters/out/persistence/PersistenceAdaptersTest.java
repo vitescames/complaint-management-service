@@ -12,7 +12,7 @@ import com.complaintmanagementservice.adapters.out.persistence.repository.Compla
 import com.complaintmanagementservice.adapters.out.persistence.repository.ComplaintStatusJpaRepository;
 import com.complaintmanagementservice.adapters.out.persistence.repository.CustomerJpaRepository;
 import com.complaintmanagementservice.application.exception.ReferenceDataNotFoundException;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -112,14 +112,14 @@ class PersistenceAdaptersTest {
                 any(Sort.class)
         ))
                 .thenReturn(List.of(savedEntity));
-        when(complaintJpaRepository.findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(LocalDate.of(2026, 3, 16), 3))
+        when(complaintJpaRepository.findNonResolvedByComplaintDate(LocalDate.of(2026, 3, 16), 3))
                 .thenReturn(List.of(savedEntity));
         doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
                 .when(resilientExecutor).executeSupplier(any(), any());
 
         assertThat(adapter.save(TestFixtures.complaint()).id()).isEqualTo(TestFixtures.complaint().id());
         assertThat(adapter.search(TestFixtures.searchQuery())).hasSize(1);
-        assertThat(adapter.findNonResolvedComplaintsCreatedOn(LocalDate.of(2026, 3, 16))).hasSize(1);
+        assertThat(adapter.findNonResolvedComplaintsByComplaintDate(LocalDate.of(2026, 3, 16))).hasSize(1);
     }
 
     @Test
@@ -175,7 +175,7 @@ class PersistenceAdaptersTest {
         doThrow(new IllegalStateException("boom")).when(resilientExecutor).executeSupplier(any(), any());
         LocalDate complaintDate = LocalDate.now();
 
-        assertThatThrownBy(() -> adapter.findNonResolvedComplaintsCreatedOn(complaintDate))
+        assertThatThrownBy(() -> adapter.findNonResolvedComplaintsByComplaintDate(complaintDate))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("boom");
     }
@@ -216,7 +216,7 @@ class PersistenceAdaptersTest {
         doThrow(CallNotPermittedException.createCallNotPermittedException(
                 io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("find-non-resolved")
         )).when(resilientExecutor).executeSupplier(any(), any());
-        assertThatThrownBy(() -> adapter.findNonResolvedComplaintsCreatedOn(complaintDate))
+        assertThatThrownBy(() -> adapter.findNonResolvedComplaintsByComplaintDate(complaintDate))
                 .isInstanceOf(CallNotPermittedException.class);
     }
 }

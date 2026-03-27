@@ -4,8 +4,8 @@ import com.complaintmanagementservice.adapters.out.persistence.mapper.CategoryPe
 import com.complaintmanagementservice.adapters.out.persistence.repository.CategoryJpaRepository;
 import com.complaintmanagementservice.application.port.out.CategoryCatalogPort;
 import com.complaintmanagementservice.domain.model.Category;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

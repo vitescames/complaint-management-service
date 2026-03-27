@@ -1,4 +1,4 @@
-package com.complaintmanagementservice.infrastructure.messaging;
+package com.complaintmanagementservice.adapters.out.messaging;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

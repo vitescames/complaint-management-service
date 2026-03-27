@@ -1,12 +1,12 @@
 package com.complaintmanagementservice.adapters.out.messaging;
 
-import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
 import com.complaintmanagementservice.application.port.out.ComplaintCreatedMessagePort;
 import com.complaintmanagementservice.application.port.out.ComplaintSlaWarningMessagePort;
 import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
-import com.complaintmanagementservice.infrastructure.config.MessagingProperties;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
+import com.complaintmanagementservice.domain.event.ComplaintSlaWarningTriggeredDomainEvent;
+import com.complaintmanagementservice.adapters.out.config.MessagingProperties;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
 
@@ -39,10 +39,10 @@ public class ComplaintQueuePublisherAdapter implements ComplaintCreatedMessagePo
     }
 
     @Override
-    public void publish(ComplaintSlaWarningNotification notification) {
+    public void publish(ComplaintSlaWarningTriggeredDomainEvent event) {
         publishMessage(
                 messagingProperties.queues().complaintSlaWarning(),
-                complaintMessagePayloadMapper.toSlaWarningMessage(notification)
+                complaintMessagePayloadMapper.toSlaWarningMessage(event)
         );
     }
 

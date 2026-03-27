@@ -2,9 +2,9 @@ package com.complaintmanagementservice.application.command;
 
 import com.complaintmanagementservice.TestFixtures;
 import com.complaintmanagementservice.application.exception.InputValidationException;
-import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
 import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
 import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
+import com.complaintmanagementservice.domain.event.ComplaintSlaWarningTriggeredDomainEvent;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -69,17 +69,23 @@ class ApplicationCommandAndModelTest {
     void shouldCreateSimpleEventAndNotificationModels() {
         ComplaintCreatedDomainEvent event =
                 new ComplaintCreatedDomainEvent(TestFixtures.complaint().id(), TestFixtures.FIXED_CLOCK.instant());
-        ComplaintSlaWarningNotification warningNotification =
-                new ComplaintSlaWarningNotification(TestFixtures.complaint().id(), LocalDate.of(2026, 3, 30));
+        ComplaintSlaWarningTriggeredDomainEvent warningEvent =
+                new ComplaintSlaWarningTriggeredDomainEvent(
+                        TestFixtures.complaint().id(),
+                        LocalDate.of(2026, 3, 30),
+                        TestFixtures.FIXED_CLOCK.instant()
+                );
         ComplaintCreatedDomainEvent nullableEvent = new ComplaintCreatedDomainEvent(null, null);
-        ComplaintSlaWarningNotification nullableNotification = new ComplaintSlaWarningNotification(null, null);
+        ComplaintSlaWarningTriggeredDomainEvent nullableWarningEvent =
+                new ComplaintSlaWarningTriggeredDomainEvent(null, null, null);
 
         assertThat(event.complaintId()).isEqualTo(TestFixtures.complaint().id());
-        assertThat(warningNotification.slaDeadlineDate()).isEqualTo(LocalDate.of(2026, 3, 30));
+        assertThat(warningEvent.slaDeadlineDate()).isEqualTo(LocalDate.of(2026, 3, 30));
         assertThat(nullableEvent.complaintId()).isNull();
         assertThat(nullableEvent.occurredAt()).isNull();
-        assertThat(nullableNotification.complaintId()).isNull();
-        assertThat(nullableNotification.slaDeadlineDate()).isNull();
+        assertThat(nullableWarningEvent.complaintId()).isNull();
+        assertThat(nullableWarningEvent.slaDeadlineDate()).isNull();
+        assertThat(nullableWarningEvent.occurredAt()).isNull();
     }
 
     @Test
@@ -134,6 +140,9 @@ class ApplicationCommandAndModelTest {
                 .complaintCreatedDate(LocalDate.of(2026, 3, 20))
                 .complaintText("Meu login falha")
                 ;
+        SearchComplaintsQuery.Builder invalidDateRangeBuilder = SearchComplaintsQuery.builder()
+                .startDate(LocalDate.of(2026, 4, 1))
+                .endDate(LocalDate.of(2026, 3, 1));
 
         assertThatThrownBy(blankCpfBuilder::build)
                 .isInstanceOf(InputValidationException.class)
@@ -151,10 +160,7 @@ class ApplicationCommandAndModelTest {
                 .isInstanceOf(InputValidationException.class)
                 .hasMessage("O e-mail do cliente é obrigatório.");
 
-        assertThatThrownBy(() -> SearchComplaintsQuery.builder()
-                .startDate(LocalDate.of(2026, 4, 1))
-                .endDate(LocalDate.of(2026, 3, 1))
-                .build())
+        assertThatThrownBy(invalidDateRangeBuilder::build)
                 .isInstanceOf(InputValidationException.class)
                 .hasMessage("A data inicial deve ser menor ou igual à data final.");
     }

@@ -15,8 +15,8 @@ import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
 import com.complaintmanagementservice.domain.model.Category;
 import com.complaintmanagementservice.domain.model.Complaint;
 import com.complaintmanagementservice.domain.model.ComplaintStatus;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,10 +87,10 @@ public class ComplaintPersistenceAdapter implements ComplaintRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Complaint> findNonResolvedComplaintsCreatedOn(LocalDate complaintDate) {
+    public List<Complaint> findNonResolvedComplaintsByComplaintDate(LocalDate complaintDate) {
         return resilientExecutor.executeSupplier(
                 ResilienceProfile.PERSISTENCE,
-                () -> complaintJpaRepository.findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(
+                () -> complaintJpaRepository.findNonResolvedByComplaintDate(
                                 complaintDate,
                                 ComplaintStatus.RESOLVED.id()
                         ).stream()

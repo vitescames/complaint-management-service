@@ -1,4 +1,4 @@
-package com.complaintmanagementservice.infrastructure.messaging;
+package com.complaintmanagementservice.adapters.out.messaging;
 
 import com.complaintmanagementservice.adapters.out.messaging.dto.ComplaintCreatedQueueMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;

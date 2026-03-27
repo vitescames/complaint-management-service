@@ -12,5 +12,5 @@ public interface ComplaintRepositoryPort {
 
     List<Complaint> search(SearchComplaintsQuery query);
 
-    List<Complaint> findNonResolvedComplaintsCreatedOn(LocalDate complaintDate);
+    List<Complaint> findNonResolvedComplaintsByComplaintDate(LocalDate complaintDate);
 }

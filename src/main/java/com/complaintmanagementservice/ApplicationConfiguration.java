@@ -1,5 +1,8 @@
-package com.complaintmanagementservice.infrastructure.config;
+package com.complaintmanagementservice;
 
+import com.complaintmanagementservice.adapters.out.config.ResilienceProperties;
+import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
+import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import com.complaintmanagementservice.application.event.DomainEventObserver;
 import com.complaintmanagementservice.application.event.DomainEventPublisher;
 import com.complaintmanagementservice.application.event.ObserverDomainEventPublisher;
@@ -8,7 +11,6 @@ import com.complaintmanagementservice.application.port.in.PublishSlaWarningsUseC
 import com.complaintmanagementservice.application.port.in.SearchComplaintsUseCase;
 import com.complaintmanagementservice.application.port.out.CategoryCatalogPort;
 import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPort;
-import com.complaintmanagementservice.application.port.out.ComplaintSlaWarningMessagePort;
 import com.complaintmanagementservice.application.usecase.CreateComplaintUseCaseImpl;
 import com.complaintmanagementservice.application.usecase.PublishSlaWarningsUseCaseImpl;
 import com.complaintmanagementservice.application.usecase.SearchComplaintsUseCaseImpl;
@@ -16,8 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.complaintmanagementservice.domain.event.DomainEvent;
 import com.complaintmanagementservice.domain.service.ComplaintCategoryClassifier;
 import com.complaintmanagementservice.domain.service.ComplaintSlaPolicy;
-import com.complaintmanagementservice.infrastructure.resilience.ResilienceProfile;
-import com.complaintmanagementservice.infrastructure.resilience.ResilientExecutor;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;
@@ -99,11 +99,11 @@ public class ApplicationConfiguration {
     @Bean
     public PublishSlaWarningsUseCase publishSlaWarningsUseCase(
             ComplaintRepositoryPort complaintRepositoryPort,
-            ComplaintSlaWarningMessagePort complaintSlaWarningMessagePort,
+            DomainEventPublisher domainEventPublisher,
             ComplaintSlaPolicy complaintSlaPolicy,
             Clock clock
     ) {
-        return new PublishSlaWarningsUseCaseImpl(complaintRepositoryPort, complaintSlaWarningMessagePort, complaintSlaPolicy, clock);
+        return new PublishSlaWarningsUseCaseImpl(complaintRepositoryPort, domainEventPublisher, complaintSlaPolicy, clock);
     }
 
     private CircuitBreaker circuitBreaker(String name, ResilienceProperties.ProfileSettings settings) {

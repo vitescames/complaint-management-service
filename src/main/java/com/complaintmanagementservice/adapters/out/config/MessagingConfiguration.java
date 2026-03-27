@@ -1,6 +1,6 @@
-package com.complaintmanagementservice.infrastructure.config;
+package com.complaintmanagementservice.adapters.out.config;
 
-import com.complaintmanagementservice.infrastructure.messaging.JacksonTextMessageConverter;
+import com.complaintmanagementservice.adapters.out.messaging.JacksonTextMessageConverter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.jms.ConnectionFactory;
 import jakarta.jms.Session;
