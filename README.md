@@ -29,7 +29,7 @@ The codebase is organized around these macro layers:
   - Use cases
   - Commands and queries
   - Ports in and ports out
-  - Observer-style domain event publisher and notification models
+  - Observer-style domain event publisher
 - `adapters.in`
   - REST controller, HTTP error models, and request/response DTOs
   - JMS listener and queue DTOs
@@ -57,7 +57,9 @@ flowchart LR
     G --> H["ComplaintCreatedQueueObserver"]
     H --> I["complaint.created.queue"]
     J["Daily SLA scheduler"] --> K["PublishSlaWarningsUseCaseImpl"]
-    K --> L["complaint.sla.warning.queue"]
+    K --> G
+    G --> L["ComplaintSlaWarningQueueObserver"]
+    L --> M["complaint.sla.warning.queue"]
 ```
 
 ## Technical Decisions
@@ -99,7 +101,8 @@ src/main/java/com/complaintmanagementservice
 |-- adapters
 |   |-- in
 |   |   |-- messaging
-|   |   `-- rest
+|   |   |-- rest
+|   |   `-- scheduler
 |   `-- out
 |       |-- messaging
 |       `-- persistence
@@ -437,7 +440,7 @@ Because categories are loaded from the database, evolving the catalog is a data 
 
 ## Domain Event Flow
 
-Complaint creation uses a classic observer flow:
+Complaint creation and SLA warning publication use a classic observer flow:
 
 1. A complaint is created in the domain and emits `ComplaintCreatedDomainEvent`.
 2. The application saves the complaint.
@@ -445,6 +448,14 @@ Complaint creation uses a classic observer flow:
 4. Registered observers are notified through the shared `DomainEventObserver` contract.
 5. `ComplaintCreatedQueueObserver` reacts to `ComplaintCreatedDomainEvent`.
 6. The messaging adapter publishes the final message to `complaint.created.queue`.
+
+For SLA warnings:
+
+1. The scheduler triggers `PublishSlaWarningsUseCaseImpl`.
+2. The use case identifies complaints that entered the SLA warning window.
+3. The use case publishes `ComplaintSlaWarningTriggeredDomainEvent`.
+4. `ComplaintSlaWarningQueueObserver` reacts to that domain event.
+5. The messaging adapter publishes the final message to `complaint.sla.warning.queue`.
 
 This keeps the domain independent from ActiveMQ while still enabling asynchronous reactions after successful creation.
 
@@ -519,8 +530,10 @@ Profiles are configured in `src/main/resources/application.yml` for:
   - `src/main/java/com/complaintmanagementservice/domain/service/ComplaintCategoryClassifier.java`
 - SLA policy:
   - `src/main/java/com/complaintmanagementservice/domain/service/ComplaintSlaPolicy.java`
+- SLA warning domain event:
+  - `src/main/java/com/complaintmanagementservice/domain/event/ComplaintSlaWarningTriggeredDomainEvent.java`
 - Scheduler:
-  - `src/main/java/com/complaintmanagementservice/infrastructure/scheduler/SlaWarningScheduler.java`
+  - `src/main/java/com/complaintmanagementservice/adapters/in/scheduler/SlaWarningScheduler.java`
 - Messaging configuration:
   - `src/main/java/com/complaintmanagementservice/infrastructure/config/MessagingConfiguration.java`
 - Application configuration:

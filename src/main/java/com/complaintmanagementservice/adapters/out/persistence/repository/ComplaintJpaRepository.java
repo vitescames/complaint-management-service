@@ -7,6 +7,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -21,5 +23,14 @@ public interface ComplaintJpaRepository extends JpaRepository<ComplaintEntity, U
     List<ComplaintEntity> findAll(@Nullable Specification<ComplaintEntity> specification, Sort sort);
 
     @EntityGraph(attributePaths = {"customer", "status", "categories", "documents"})
-    List<ComplaintEntity> findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(LocalDate complaintDate, Integer statusId);
+    @Query("""
+            select complaint
+            from ComplaintEntity complaint
+            where complaint.complaintDate = :complaintDate
+              and complaint.status.id <> :resolvedStatusId
+            """)
+    List<ComplaintEntity> findNonResolvedByComplaintDate(
+            @Param("complaintDate") LocalDate complaintDate,
+            @Param("resolvedStatusId") Integer resolvedStatusId
+    );
 }

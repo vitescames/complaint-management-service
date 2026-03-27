@@ -1,9 +1,9 @@
 package com.complaintmanagementservice;
 
 import com.complaintmanagementservice.application.command.CreateComplaintCommand;
-import com.complaintmanagementservice.application.notification.ComplaintSlaWarningNotification;
 import com.complaintmanagementservice.application.query.SearchComplaintsQuery;
 import com.complaintmanagementservice.domain.event.ComplaintCreatedDomainEvent;
+import com.complaintmanagementservice.domain.event.ComplaintSlaWarningTriggeredDomainEvent;
 import com.complaintmanagementservice.domain.model.Category;
 import com.complaintmanagementservice.domain.model.CategoryKeyword;
 import com.complaintmanagementservice.domain.model.Complaint;
@@ -109,12 +109,16 @@ public final class TestFixtures {
                 .build();
     }
 
-    public static ComplaintSlaWarningNotification complaintSlaWarningNotification() {
-        return new ComplaintSlaWarningNotification(complaint().id(), LocalDate.of(2026, 3, 30));
-    }
-
     public static ComplaintCreatedDomainEvent complaintCreatedDomainEvent() {
         return new ComplaintCreatedDomainEvent(complaint().id(), Instant.parse("2026-03-23T10:15:30Z"));
+    }
+
+    public static ComplaintSlaWarningTriggeredDomainEvent complaintSlaWarningTriggeredDomainEvent() {
+        return new ComplaintSlaWarningTriggeredDomainEvent(
+                complaint().id(),
+                LocalDate.of(2026, 3, 30),
+                Instant.parse("2026-03-23T10:15:30Z")
+        );
     }
 
     public static Complaint approachingSlaComplaint() {

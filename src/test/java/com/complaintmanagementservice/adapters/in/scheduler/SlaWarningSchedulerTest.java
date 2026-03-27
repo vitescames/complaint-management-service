@@ -1,4 +1,4 @@
-package com.complaintmanagementservice.infrastructure.scheduler;
+package com.complaintmanagementservice.adapters.in.scheduler;
 
 import com.complaintmanagementservice.application.port.in.PublishSlaWarningsUseCase;
 import org.junit.jupiter.api.Test;

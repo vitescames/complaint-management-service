@@ -8,7 +8,6 @@ import com.complaintmanagementservice.application.port.in.PublishSlaWarningsUseC
 import com.complaintmanagementservice.application.port.in.SearchComplaintsUseCase;
 import com.complaintmanagementservice.application.port.out.CategoryCatalogPort;
 import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPort;
-import com.complaintmanagementservice.application.port.out.ComplaintSlaWarningMessagePort;
 import com.complaintmanagementservice.application.usecase.CreateComplaintUseCaseImpl;
 import com.complaintmanagementservice.application.usecase.PublishSlaWarningsUseCaseImpl;
 import com.complaintmanagementservice.application.usecase.SearchComplaintsUseCaseImpl;
@@ -99,11 +98,11 @@ public class ApplicationConfiguration {
     @Bean
     public PublishSlaWarningsUseCase publishSlaWarningsUseCase(
             ComplaintRepositoryPort complaintRepositoryPort,
-            ComplaintSlaWarningMessagePort complaintSlaWarningMessagePort,
+            DomainEventPublisher domainEventPublisher,
             ComplaintSlaPolicy complaintSlaPolicy,
             Clock clock
     ) {
-        return new PublishSlaWarningsUseCaseImpl(complaintRepositoryPort, complaintSlaWarningMessagePort, complaintSlaPolicy, clock);
+        return new PublishSlaWarningsUseCaseImpl(complaintRepositoryPort, domainEventPublisher, complaintSlaPolicy, clock);
     }
 
     private CircuitBreaker circuitBreaker(String name, ResilienceProperties.ProfileSettings settings) {

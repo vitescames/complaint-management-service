@@ -87,10 +87,10 @@ public class ComplaintPersistenceAdapter implements ComplaintRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Complaint> findNonResolvedComplaintsCreatedOn(LocalDate complaintDate) {
+    public List<Complaint> findNonResolvedComplaintsByComplaintDate(LocalDate complaintDate) {
         return resilientExecutor.executeSupplier(
                 ResilienceProfile.PERSISTENCE,
-                () -> complaintJpaRepository.findByComplaintDateAndStatusIdNotOrderByComplaintDateDesc(
+                () -> complaintJpaRepository.findNonResolvedByComplaintDate(
                                 complaintDate,
                                 ComplaintStatus.RESOLVED.id()
                         ).stream()

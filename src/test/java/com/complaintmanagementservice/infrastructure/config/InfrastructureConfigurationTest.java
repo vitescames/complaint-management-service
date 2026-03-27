@@ -7,7 +7,6 @@ import com.complaintmanagementservice.application.port.in.PublishSlaWarningsUseC
 import com.complaintmanagementservice.application.port.in.SearchComplaintsUseCase;
 import com.complaintmanagementservice.application.port.out.CategoryCatalogPort;
 import com.complaintmanagementservice.application.port.out.ComplaintRepositoryPort;
-import com.complaintmanagementservice.application.port.out.ComplaintSlaWarningMessagePort;
 import com.complaintmanagementservice.domain.event.DomainEvent;
 import com.complaintmanagementservice.domain.service.ComplaintCategoryClassifier;
 import com.complaintmanagementservice.domain.service.ComplaintSlaPolicy;
@@ -76,7 +75,7 @@ class InfrastructureConfigurationTest {
         SearchComplaintsUseCase searchComplaintsUseCase = applicationConfiguration.searchComplaintsUseCase(mock(ComplaintRepositoryPort.class));
         PublishSlaWarningsUseCase publishSlaWarningsUseCase = applicationConfiguration.publishSlaWarningsUseCase(
                 mock(ComplaintRepositoryPort.class),
-                mock(ComplaintSlaWarningMessagePort.class),
+                domainEventPublisher,
                 new ComplaintSlaPolicy(),
                 applicationConfiguration.clock()
         );
