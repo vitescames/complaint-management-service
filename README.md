@@ -1,4 +1,4 @@
-# complaint-management-service
+# 📝 Complaint Management Service
 
 <p align="center">
   <img alt="Java 17" src="https://img.shields.io/badge/Java-17-437291?style=for-the-badge&logo=openjdk&logoColor=white">
