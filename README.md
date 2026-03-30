@@ -165,20 +165,25 @@ src/main/java/com/complaintmanagementservice
 ### Prerequisites
 
 - Java 17
-- Maven 3.9+
+- Maven 3.9+ if you prefer not to use the Maven Wrapper
+
+This repository includes the Maven Wrapper, so the recommended commands are:
+
+- Windows: `mvnw.cmd`
+- Linux/macOS: `./mvnw`
 
 ### Quick Start
 
 1. Start the application:
 
 ```bash
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 2. If port `8080` is already in use:
 
 ```bash
-mvn spring-boot:run "-Dspring-boot.run.arguments=--server.port=0"
+./mvnw spring-boot:run "-Dspring-boot.run.arguments=--server.port=0"
 ```
 
 ### What Starts Automatically
@@ -212,8 +217,8 @@ When the application starts, it also brings up:
 
 | Goal | Command |
 |---|---|
-| Complete build verification | `mvn clean verify` |
-| Test suite only | `mvn test` |
+| Complete build verification | `./mvnw clean verify` |
+| Test suite only | `./mvnw test` |
 | Open JaCoCo report | `target/site/jacoco/index.html` |
 
 The Maven build is configured to fail if coverage is below 100% for:
