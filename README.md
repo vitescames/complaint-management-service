@@ -1,51 +1,90 @@
 # complaint-management-service
 
+<p align="center">
+  <img alt="Java 17" src="https://img.shields.io/badge/Java-17-437291?style=for-the-badge&logo=openjdk&logoColor=white">
+  <img alt="Spring Boot 4.0.4" src="https://img.shields.io/badge/Spring%20Boot-4.0.4-6DB33F?style=for-the-badge&logo=springboot&logoColor=white">
+  <img alt="Maven" src="https://img.shields.io/badge/Maven-Build-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white">
+  <img alt="H2 Embedded" src="https://img.shields.io/badge/H2-Embedded-1B72BE?style=for-the-badge">
+  <img alt="ActiveMQ Embedded" src="https://img.shields.io/badge/ActiveMQ-Embedded-EA7A00?style=for-the-badge">
+  <img alt="JaCoCo 100%" src="https://img.shields.io/badge/JaCoCo-100%25-2E7D32?style=for-the-badge">
+</p>
+
+<p align="center">
+  Production-style PoC built for a senior technical case, combining hexagonal architecture,
+  lightweight CQRS, persisted complaint classification, embedded messaging, and strict build quality gates.
+</p>
+
+<p align="center">
+  <a href="#overview">Overview</a> |
+  <a href="#architecture">Architecture</a> |
+  <a href="#running-locally">Running Locally</a> |
+  <a href="#rest-api">REST API</a> |
+  <a href="#messaging">Messaging</a> |
+  <a href="#automatic-complaint-classification">Classification</a> |
+  <a href="#domain-event-flow">Domain Events</a>
+</p>
+
+---
+
 ## Overview
 
 `complaint-management-service` is a production-style PoC built with Java 17 and Spring Boot 4.
 It receives complaints through REST and JMS, classifies them with persisted category keywords, stores them in H2 through JPA, and publishes asynchronous notifications through an embedded ActiveMQ broker.
 
-The project is intentionally structured for a senior-level technical case:
+This project is intentionally structured for a senior-level technical case.
+
+### At a Glance
+
+| Dimension | Details |
+|---|---|
+| Primary purpose | Complaint intake, classification, persistence, and asynchronous event publication |
+| Entry points | REST `POST /complaints`, REST `GET /complaints`, JMS `complaint.received.queue` |
+| Core architectural style | Hexagonal architecture with strict layer boundaries |
+| Business style | Domain-centric model with always-valid objects |
+| Coordination style | Lightweight CQRS with commands and queries |
+| Messaging style | Observer-based domain event publication with embedded ActiveMQ |
+| Local execution | H2 in-memory database, Flyway migrations, embedded broker, scheduler |
+| Quality gate | Full Maven verification with JaCoCo at `100%` |
+
+### Project Highlights
 
 - Hexagonal architecture with strict layer boundaries
 - Domain-centric design with always-valid domain objects
 - Separate input DTOs and mappers per channel
 - Lightweight CQRS with commands and queries
-- Embedded infrastructure for local execution
 - Observer-based domain event flow
 - Resilience around infrastructure-facing adapters
+- Embedded infrastructure for local execution
 - Full Maven build verification with JaCoCo at 100%
+
+---
 
 ## Architecture
 
-The codebase is organized around these macro layers:
+### Macro Layers
+
+| Layer | Responsibility |
+|---|---|
+| `domain` | Pure business model, business rules, value objects, domain services, and domain events |
+| `application` | Use cases, commands, queries, ports, and observer-style domain event publishing |
+| `adapters.in` | REST controllers, HTTP error models, request/response DTOs, JMS listener, and input mappers |
+| `adapters.out` | Persistence adapters, messaging adapters, configuration, and resilience support |
+| `root package` | Application bean wiring |
+
+### Layer Notes
 
 - `domain`
-  - Pure business model and business rules
   - Value objects such as `Cpf`, `EmailAddress`, `ComplaintText`, and `DocumentUrl`
   - Domain services such as complaint classification and SLA policy
-  - Domain events
-- `application`
-  - Use cases
-  - Commands and queries
-  - Ports in and ports out
-  - Observer-style domain event publisher
-- `adapters.in`
-  - REST controller, HTTP error models, and request/response DTOs
-  - JMS listener and queue DTOs
-  - Channel-specific mappers that normalize payloads into the same application flow
-- `adapters.out`
-  - Persistence implementation with JPA entities and Spring Data repositories
-  - Messaging publishers for queue notifications
-- `root package`
-  - Application bean wiring
+  - Domain events such as complaint creation and SLA warning triggering
 - `adapters.out.config`
   - Embedded ActiveMQ setup
   - Configuration properties
+  - H2 console registration
 - `adapters.out.resilience`
-  - Resilience support
+  - Resilience support for outbound integrations
 
-### High-level flow
+### High-level Flow
 
 ```mermaid
 flowchart LR
@@ -63,39 +102,7 @@ flowchart LR
     L --> M["complaint.sla.warning.queue"]
 ```
 
-## Technical Decisions
-
-- The domain does not depend on Spring, JPA, JMS, or Bean Validation.
-- REST and queue payloads are intentionally different and normalized by dedicated mappers into the same `CreateComplaintCommand`.
-- Commands and queries use manual builders and keep transport-neutral data. They remain lightweight carriers, and domain objects are created inside the use cases.
-- Complaint classification is data-driven. Categories and keywords are loaded from the database, so new categories can be introduced without changing classifier code.
-- Complaint status is modeled as a domain enum and also backed by a reference table with fixed ids:
-  - `1 = PENDING`
-  - `2 = PROCESSING`
-  - `3 = RESOLVED`
-- The initial complaint status is always `PENDING` and is never chosen by the client.
-- The HTTP layer returns explicit error response models instead of exposing raw `ProblemDetail`.
-- Resilience is applied at the outgoing adapter boundary, mainly around persistence and queue publishing, so business rules stay clean.
-- ActiveMQ runs embedded inside the application with dead-letter handling configured through destination policy.
-- Flyway is the only mechanism used to create and seed the database schema.
-
-## Technology Stack
-
-- Java 17
-- Spring Boot 4.0.4
-- Maven
-- Spring Web
-- Spring Data JPA
-- Bean Validation
-- H2 embedded database
-- Flyway
-- JMS with embedded ActiveMQ
-- Resilience4j
-- JUnit 5
-- Mockito
-- JaCoCo
-
-## Project Structure
+### Project Structure
 
 ```text
 src/main/java/com/complaintmanagementservice
@@ -114,6 +121,45 @@ src/main/java/com/complaintmanagementservice
 `-- domain
 ```
 
+---
+
+## Technical Decisions
+
+- The domain does not depend on Spring, JPA, JMS, or Bean Validation.
+- REST and queue payloads are intentionally different and normalized by dedicated mappers into the same `CreateComplaintCommand`.
+- Commands and queries use manual builders and keep transport-neutral data. They remain lightweight carriers, and domain objects are created inside the use cases.
+- Complaint classification is data-driven. Categories and keywords are loaded from the database, so new categories can be introduced without changing classifier code.
+- Complaint status is modeled as a domain enum and also backed by a reference table with fixed ids:
+  - `1 = PENDING`
+  - `2 = PROCESSING`
+  - `3 = RESOLVED`
+- The initial complaint status is always `PENDING` and is never chosen by the client.
+- The HTTP layer returns explicit error response models instead of exposing raw `ProblemDetail`.
+- Resilience is applied at the outgoing adapter boundary, mainly around persistence and queue publishing, so business rules stay clean.
+- ActiveMQ runs embedded inside the application with dead-letter handling configured through destination policy.
+- Flyway is the only mechanism used to create and seed the database schema.
+
+---
+
+## Technology Stack
+
+| Category | Technology |
+|---|---|
+| Language | Java 17 |
+| Framework | Spring Boot 4.0.4 |
+| Build | Maven |
+| Web | Spring Web |
+| Persistence | Spring Data JPA |
+| Validation | Bean Validation |
+| Database | H2 embedded database |
+| Migration | Flyway |
+| Messaging | JMS with embedded ActiveMQ |
+| Resilience | Resilience4j |
+| Testing | JUnit 5 + Mockito |
+| Coverage | JaCoCo |
+
+---
+
 ## Running Locally
 
 ### Prerequisites
@@ -121,21 +167,21 @@ src/main/java/com/complaintmanagementservice
 - Java 17
 - Maven 3.9+
 
-### Start the application
+### Quick Start
+
+1. Start the application:
 
 ```bash
 mvn spring-boot:run
 ```
 
-By default the application runs on port `8080`.
-
-If port `8080` is already in use, run:
+2. If port `8080` is already in use:
 
 ```bash
 mvn spring-boot:run "-Dspring-boot.run.arguments=--server.port=0"
 ```
 
-### What starts automatically
+### What Starts Automatically
 
 When the application starts, it also brings up:
 
@@ -145,34 +191,30 @@ When the application starts, it also brings up:
 - JMS queues used by the application
 - Daily scheduler
 
-### Local URLs
+### Local Endpoints
 
-- API base URL: `http://localhost:8080`
-- H2 console: `http://localhost:8080/h2-console`
+| Endpoint | URL |
+|---|---|
+| API base URL | `http://localhost:8080` |
+| H2 console | `http://localhost:8080/h2-console/` |
 
-H2 connection values:
+### H2 Connection Values
 
-- JDBC URL: `jdbc:h2:mem:complaintsdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE`
-- User: `sa`
-- Password: empty
+| Property | Value |
+|---|---|
+| JDBC URL | `jdbc:h2:mem:complaintsdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE` |
+| User | `sa` |
+| Password | empty |
+
+---
 
 ## Build, Tests, and Coverage
 
-Run the complete build:
-
-```bash
-mvn clean verify
-```
-
-Run only the test suite:
-
-```bash
-mvn test
-```
-
-Open the JaCoCo report after the build:
-
-- `target/site/jacoco/index.html`
+| Goal | Command |
+|---|---|
+| Complete build verification | `mvn clean verify` |
+| Test suite only | `mvn test` |
+| Open JaCoCo report | `target/site/jacoco/index.html` |
 
 The Maven build is configured to fail if coverage is below 100% for:
 
@@ -181,21 +223,25 @@ The Maven build is configured to fail if coverage is below 100% for:
 - lines
 - methods
 
+---
+
 ## Flyway and Reference Data
 
 Flyway migration:
 
 - `src/main/resources/db/migration/V1__create_schema.sql`
 
-It creates and seeds:
+### Created and Seeded Tables
 
-- `customers`
-- `complaint_statuses`
-- `categories`
-- `category_keywords`
-- `complaints`
-- `complaint_categories`
-- `complaint_documents`
+| Table | Purpose |
+|---|---|
+| `customers` | Customer data |
+| `complaint_statuses` | Reference status catalog |
+| `categories` | Complaint categories |
+| `category_keywords` | Keywords per category |
+| `complaints` | Complaint aggregate root persistence |
+| `complaint_categories` | Complaint-category association |
+| `complaint_documents` | Optional document URLs |
 
 Reference data includes:
 
@@ -203,13 +249,15 @@ Reference data includes:
 - initial complaint categories
 - initial category keywords
 
+---
+
 ## REST API
 
 ### POST `/complaints`
 
 Creates a complaint through the REST channel.
 
-#### Request example
+#### Request Example
 
 ```json
 {
@@ -228,7 +276,7 @@ Creates a complaint through the REST channel.
 }
 ```
 
-#### cURL example
+#### cURL Example
 
 ```bash
 curl -i -X POST "http://localhost:8080/complaints" \
@@ -248,7 +296,7 @@ curl -i -X POST "http://localhost:8080/complaints" \
   }'
 ```
 
-#### Success response example
+#### Success Response Example
 
 ```json
 {
@@ -258,7 +306,7 @@ curl -i -X POST "http://localhost:8080/complaints" \
 }
 ```
 
-#### Error response examples
+#### Error Response Examples
 
 Validation and parsing errors return a field-oriented structure:
 
@@ -297,7 +345,7 @@ Expected behavior:
 
 Searches complaints ordered from newest complaint date to oldest.
 
-Supported optional filters:
+#### Supported Optional Filters
 
 - `customerCpf`
 - `categories`
@@ -305,20 +353,20 @@ Supported optional filters:
 - `startDate`
 - `endDate`
 
-Date rules:
+#### Date Rules
 
 - only `startDate`: returns complaints from that date onward
 - only `endDate`: returns complaints from the beginning up to that date
 - both dates: returns the range
 - no dates: returns everything
 
-#### cURL example
+#### cURL Example
 
 ```bash
 curl "http://localhost:8080/complaints?customerCpf=52998224725&categories=acesso&categories=aplicativo&status=1&startDate=2026-03-01&endDate=2026-03-31"
 ```
 
-#### Response example
+#### Response Example
 
 ```json
 [
@@ -354,19 +402,23 @@ curl "http://localhost:8080/complaints?customerCpf=52998224725&categories=acesso
 ]
 ```
 
+---
+
 ## Messaging
 
-### Configured queues
+### Configured Queues
 
-- `complaint.received.queue`
-- `complaint.created.queue`
-- `complaint.sla.warning.queue`
+| Queue | Purpose |
+|---|---|
+| `complaint.received.queue` | Inbound complaint creation |
+| `complaint.created.queue` | Outbound complaint-created event |
+| `complaint.sla.warning.queue` | Outbound SLA warning event |
 
 Dead-letter queues are configured with the `DLQ.` prefix by ActiveMQ policy. For example:
 
 - `DLQ.complaint.received.queue`
 
-### Inbound message format
+### Inbound Message Format
 
 The queue listener accepts a different payload than the REST API.
 
@@ -381,7 +433,7 @@ The queue listener accepts a different payload than the REST API.
 }
 ```
 
-### Example of sending a message to the inbound queue
+### Example of Sending a Message to the Inbound Queue
 
 This PoC uses an embedded broker with VM transport, so queue publishing is intended to happen in-process.
 The simplest way to send a message manually is through `JmsTemplate` inside the running application context:
@@ -399,7 +451,7 @@ CreateComplaintQueueMessage payload = new CreateComplaintQueueMessage(
 jmsTemplate.convertAndSend("complaint.received.queue", payload);
 ```
 
-### Published queue messages
+### Published Queue Messages
 
 After a complaint is created successfully:
 
@@ -419,20 +471,24 @@ When the SLA warning job finds a complaint near the deadline:
 }
 ```
 
+---
+
 ## Automatic Complaint Classification
 
 Classification is based on complaint text and persisted category keywords.
 
-Initial categories and examples of keywords:
+### Initial Categories
 
-- `imobiliario`: `credito imobiliario`, `casa`, `apartamento`
-- `seguros`: `resgate`, `capitalizacao`, `socorro`
-- `cobranca`: `fatura`, `cobranca`, `valor`, `indevido`
-- `acesso`: `acessar`, `login`, `senha`
-- `aplicativo`: `app`, `aplicativo`, `travando`, `erro`
-- `fraude`: `fatura`, `nao reconhece divida`, `fraude`
+| Category | Initial Keywords |
+|---|---|
+| `imobiliario` | `credito imobiliario`, `casa`, `apartamento` |
+| `seguros` | `resgate`, `capitalizacao`, `socorro` |
+| `cobranca` | `fatura`, `cobranca`, `valor`, `indevido` |
+| `acesso` | `acessar`, `login`, `senha` |
+| `aplicativo` | `app`, `aplicativo`, `travando`, `erro` |
+| `fraude` | `fatura`, `nao reconhece divida`, `fraude` |
 
-How it works:
+### How It Works
 
 - the classifier normalizes the complaint text
 - it compares the normalized text with the persisted keyword catalog
@@ -441,9 +497,13 @@ How it works:
 
 Because categories are loaded from the database, evolving the catalog is a data change, not a source-code change.
 
+---
+
 ## Domain Event Flow
 
-Complaint creation and SLA warning publication use a classic observer flow:
+Complaint creation and SLA warning publication use a classic observer flow.
+
+### Complaint Creation Flow
 
 1. A complaint is created in the domain and emits `ComplaintCreatedDomainEvent`.
 2. The application saves the complaint.
@@ -452,7 +512,7 @@ Complaint creation and SLA warning publication use a classic observer flow:
 5. `ComplaintCreatedQueueObserver` reacts to `ComplaintCreatedDomainEvent`.
 6. The messaging adapter publishes the final message to `complaint.created.queue`.
 
-For SLA warnings:
+### SLA Warning Flow
 
 1. The scheduler triggers `PublishSlaWarningsUseCaseImpl`.
 2. The use case identifies complaints that entered the SLA warning window.
@@ -462,13 +522,15 @@ For SLA warnings:
 
 This keeps the domain independent from ActiveMQ while still enabling asynchronous reactions after successful creation.
 
+---
+
 ## SLA Warning Job
 
 The scheduled job runs every day at `07:00` using:
 
 - `application.scheduler.sla-warning-cron=0 0 7 * * *`
 
-The rule is:
+### Rule
 
 - consider complaints whose status is not `RESOLVED`
 - calculate the SLA deadline as `complaint created date + 10 days`
@@ -478,20 +540,22 @@ In practice, the scheduler looks for complaints created 7 days before the refere
 
 Duplicate warning publication is allowed in this PoC.
 
+---
+
 ## Validation Strategy
 
-Validation is intentionally split into three levels:
+Validation is intentionally split into three levels.
 
-1. Edge validation
-   - Bean Validation on REST DTOs and queue DTOs
-2. Application validation
-   - input normalization in channel mappers when it improves request clarity
-   - semantic checks in use cases, such as date range validation and future complaint date rejection
-3. Domain validation
-   - always-valid entities and value objects
+| Level | Scope | Examples |
+|---|---|---|
+| Edge validation | REST DTOs and queue DTOs | Bean Validation, field format validation |
+| Application validation | Use cases, commands, and queries | input normalization when useful, semantic range checks |
+| Domain validation | Entities and value objects | always-valid business objects and invariants |
 
 This keeps invalid state out of the system as early as possible while still protecting the core domain.
 Commands and queries remain lightweight and do not instantiate domain objects by themselves.
+
+---
 
 ## Resilience Strategy
 
@@ -500,7 +564,7 @@ Resilience is applied to outbound infrastructure-facing operations:
 - persistence adapter
 - queue publisher adapter
 
-The goals are:
+### Goals
 
 - fail fast
 - reduce pressure on degraded infrastructure
@@ -513,36 +577,28 @@ Profiles are configured in `src/main/resources/application.yml` for:
 - `application.resilience.persistence`
 - `application.resilience.messaging`
 
+---
+
 ## Main Files
 
-- Application entry point:
-  - `src/main/java/com/complaintmanagementservice/ComplaintManagementServiceApplication.java`
-- REST controller:
-  - `src/main/java/com/complaintmanagementservice/adapters/in/rest/ComplaintController.java`
-- REST exception handler:
-  - `src/main/java/com/complaintmanagementservice/adapters/in/rest/ApiExceptionHandler.java`
-- Queue listener:
-  - `src/main/java/com/complaintmanagementservice/adapters/in/messaging/ComplaintReceivedListener.java`
-- Complaint creation use case:
-  - `src/main/java/com/complaintmanagementservice/application/usecase/CreateComplaintUseCaseImpl.java`
-- Complaint search use case:
-  - `src/main/java/com/complaintmanagementservice/application/usecase/SearchComplaintsUseCaseImpl.java`
-- SLA warning use case:
-  - `src/main/java/com/complaintmanagementservice/application/usecase/PublishSlaWarningsUseCaseImpl.java`
-- Domain classifier:
-  - `src/main/java/com/complaintmanagementservice/domain/service/ComplaintCategoryClassifier.java`
-- SLA policy:
-  - `src/main/java/com/complaintmanagementservice/domain/service/ComplaintSlaPolicy.java`
-- SLA warning domain event:
-  - `src/main/java/com/complaintmanagementservice/domain/event/ComplaintSlaWarningTriggeredDomainEvent.java`
-- Scheduler:
-  - `src/main/java/com/complaintmanagementservice/adapters/in/scheduler/SlaWarningScheduler.java`
-- Messaging configuration:
-  - `src/main/java/com/complaintmanagementservice/adapters/out/config/MessagingConfiguration.java`
-- Application configuration:
-  - `src/main/java/com/complaintmanagementservice/ApplicationConfiguration.java`
-- Flyway migration:
-  - `src/main/resources/db/migration/V1__create_schema.sql`
+| Area | File |
+|---|---|
+| Application entry point | `src/main/java/com/complaintmanagementservice/ComplaintManagementServiceApplication.java` |
+| Application configuration | `src/main/java/com/complaintmanagementservice/ApplicationConfiguration.java` |
+| REST controller | `src/main/java/com/complaintmanagementservice/adapters/in/rest/ComplaintController.java` |
+| REST exception handler | `src/main/java/com/complaintmanagementservice/adapters/in/rest/ApiExceptionHandler.java` |
+| Queue listener | `src/main/java/com/complaintmanagementservice/adapters/in/messaging/ComplaintReceivedListener.java` |
+| Scheduler | `src/main/java/com/complaintmanagementservice/adapters/in/scheduler/SlaWarningScheduler.java` |
+| Complaint creation use case | `src/main/java/com/complaintmanagementservice/application/usecase/CreateComplaintUseCaseImpl.java` |
+| Complaint search use case | `src/main/java/com/complaintmanagementservice/application/usecase/SearchComplaintsUseCaseImpl.java` |
+| SLA warning use case | `src/main/java/com/complaintmanagementservice/application/usecase/PublishSlaWarningsUseCaseImpl.java` |
+| Domain classifier | `src/main/java/com/complaintmanagementservice/domain/service/ComplaintCategoryClassifier.java` |
+| SLA policy | `src/main/java/com/complaintmanagementservice/domain/service/ComplaintSlaPolicy.java` |
+| SLA warning domain event | `src/main/java/com/complaintmanagementservice/domain/event/ComplaintSlaWarningTriggeredDomainEvent.java` |
+| Messaging configuration | `src/main/java/com/complaintmanagementservice/adapters/out/config/MessagingConfiguration.java` |
+| Flyway migration | `src/main/resources/db/migration/V1__create_schema.sql` |
+
+---
 
 ## Notes
 

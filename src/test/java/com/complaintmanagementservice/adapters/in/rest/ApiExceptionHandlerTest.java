@@ -38,10 +38,10 @@ import static org.mockito.Mockito.when;
 
 class ApiExceptionHandlerTest {
 
-    private static final String INVALID_FORMAT_MESSAGE = "Formato inv\u00E1lido";
-    private static final String INVALID_DATE_MESSAGE = "Data inv\u00E1lida";
-    private static final String REQUIRED_MESSAGE = "N\u00E3o pode ser nulo ou vazio";
-    private static final String UNREADABLE_REQUEST_MESSAGE = "N\u00E3o foi poss\u00EDvel interpretar a requisi\u00E7\u00E3o enviada.";
+    private static final String INVALID_FORMAT_MESSAGE = "Formato inválido";
+    private static final String INVALID_DATE_MESSAGE = "Data inválida";
+    private static final String REQUIRED_MESSAGE = "Não pode ser nulo ou vazio";
+    private static final String UNREADABLE_REQUEST_MESSAGE = "Não foi possível interpretar a requisição enviada.";
 
     private final ApiExceptionHandler handler = new ApiExceptionHandler();
 
@@ -125,13 +125,13 @@ class ApiExceptionHandlerTest {
     @Test
     void shouldBuildMappedResponses() {
         ApiErrorResponse business = handler.handleBusinessViolation(
-                new BusinessRuleViolationException("A data da reclama\u00E7\u00E3o n\u00E3o pode ser futura.")
+                new BusinessRuleViolationException("A data da reclamação não pode ser futura.")
         );
         ApiErrorResponse inputValidation = handler.handleBusinessViolation(
-                new InputValidationException("A data inicial deve ser menor ou igual \u00E0 data final.")
+                new InputValidationException("A data inicial deve ser menor ou igual à data final.")
         );
         ApiErrorResponse notFound = handler.handleReferenceDataNotFound(
-                new ReferenceDataNotFoundException("Categoria n\u00E3o encontrada.")
+                new ReferenceDataNotFoundException("Categoria não encontrada.")
         );
         ApiErrorResponse routeNotFound = handler.handleNoResourceFound(
                 new NoResourceFoundException(HttpMethod.GET, "/rota-inexistente", null)
@@ -139,13 +139,13 @@ class ApiExceptionHandlerTest {
         ApiErrorResponse unexpected = handler.handleUnexpectedError(new RuntimeException("boom"));
 
         assertThat(business.status()).isEqualTo(422);
-        assertThat(business.message()).isEqualTo("A data da reclama\u00E7\u00E3o n\u00E3o pode ser futura.");
+        assertThat(business.message()).isEqualTo("A data da reclamação não pode ser futura.");
         assertThat(inputValidation.status()).isEqualTo(422);
-        assertThat(inputValidation.message()).isEqualTo("A data inicial deve ser menor ou igual \u00E0 data final.");
+        assertThat(inputValidation.message()).isEqualTo("A data inicial deve ser menor ou igual à data final.");
         assertThat(notFound.status()).isEqualTo(404);
-        assertThat(notFound.message()).isEqualTo("Categoria n\u00E3o encontrada.");
+        assertThat(notFound.message()).isEqualTo("Categoria não encontrada.");
         assertThat(routeNotFound.status()).isEqualTo(404);
-        assertThat(routeNotFound.message()).isEqualTo("Recurso n\u00E3o encontrado.");
+        assertThat(routeNotFound.message()).isEqualTo("Recurso não encontrado.");
         assertThat(unexpected.status()).isEqualTo(500);
         assertThat(unexpected.message()).isEqualTo("Ocorreu um erro interno. Tente novamente mais tarde.");
     }
