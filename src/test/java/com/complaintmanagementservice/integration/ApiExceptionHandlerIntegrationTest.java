@@ -27,21 +27,21 @@ class ApiExceptionHandlerIntegrationTest extends IntegrationTestSupport {
     @Test
     void shouldReturnUnprocessableEntityWhenPostRaisesInputValidationException() throws Exception {
         when(createComplaintUseCase.create(any()))
-                .thenThrow(new InputValidationException("O CPF do cliente \u00E9 obrigat\u00F3rio."));
+                .thenThrow(new InputValidationException("O CPF do cliente é obrigatório."));
 
         mockMvc.perform(post("/complaints")
                         .contentType(APPLICATION_JSON)
                         .content(validRestPayloadWithoutDocuments()))
                 .andExpect(status().isUnprocessableContent())
-                .andExpect(jsonPath("$.title").value("Regra de neg\u00F3cio violada"))
+                .andExpect(jsonPath("$.title").value("Regra de negócio violada"))
                 .andExpect(jsonPath("$.status").value(422))
-                .andExpect(jsonPath("$.message").value("O CPF do cliente \u00E9 obrigat\u00F3rio."));
+                .andExpect(jsonPath("$.message").value("O CPF do cliente é obrigatório."));
     }
 
     @Test
     void shouldReturnFriendlyInternalServerErrorWhenPostRaisesUnexpectedException() throws Exception {
         when(createComplaintUseCase.create(any()))
-                .thenThrow(new IllegalStateException("falha t\u00E9cnica"));
+                .thenThrow(new IllegalStateException("falha técnica"));
 
         mockMvc.perform(post("/complaints")
                         .contentType(APPLICATION_JSON)
@@ -56,8 +56,8 @@ class ApiExceptionHandlerIntegrationTest extends IntegrationTestSupport {
     void shouldReturnNotFoundWhenRouteDoesNotExist() throws Exception {
         mockMvc.perform(get("/rota-inexistente"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.title").value("Recurso n\u00E3o encontrado"))
+                .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
                 .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.message").value("Recurso n\u00E3o encontrado."));
+                .andExpect(jsonPath("$.message").value("Recurso não encontrado."));
     }
 }
