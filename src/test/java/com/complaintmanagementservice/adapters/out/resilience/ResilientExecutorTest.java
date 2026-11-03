@@ -36,7 +36,7 @@ class ResilientExecutorTest {
         assertThat(result).isEqualTo("ok");
         assertThat(attempts.get()).isEqualTo(2);
         executor.executeRunnable(ResilienceProfile.PERSISTENCE, attempts::incrementAndGet);
-        assertThat(executor.isCallPermitted(ResilienceProfile.PERSISTENCE)).isTrue();
+        assertThat(attempts.get()).isEqualTo(3);
     }
 
     @Test
@@ -63,7 +63,6 @@ class ResilientExecutorTest {
         })).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> executor.executeSupplier(ResilienceProfile.MESSAGING, () -> "never"))
                 .isInstanceOf(CallNotPermittedException.class);
-        assertThat(executor.isCallPermitted(ResilienceProfile.MESSAGING)).isFalse();
     }
 
     @Test

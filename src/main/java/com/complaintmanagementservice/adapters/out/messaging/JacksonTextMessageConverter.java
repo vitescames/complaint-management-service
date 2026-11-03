@@ -1,5 +1,8 @@
 package com.complaintmanagementservice.adapters.out.messaging;
 
+import com.complaintmanagementservice.adapters.in.messaging.dto.CreateComplaintQueueMessage;
+import com.complaintmanagementservice.adapters.out.messaging.dto.ComplaintCreatedQueueMessage;
+import com.complaintmanagementservice.adapters.out.messaging.dto.ComplaintSlaWarningQueueMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.jms.JMSException;
@@ -10,10 +13,17 @@ import org.jspecify.annotations.NullMarked;
 import org.springframework.jms.support.converter.MessageConversionException;
 import org.springframework.jms.support.converter.MessageConverter;
 
+import java.util.Map;
+
 @NullMarked
 public class JacksonTextMessageConverter implements MessageConverter {
 
     private static final String TYPE_ID_PROPERTY = "_type";
+    private static final Map<String, Class<?>> PAYLOAD_TYPES = Map.of(
+            CreateComplaintQueueMessage.class.getName(), CreateComplaintQueueMessage.class,
+            ComplaintCreatedQueueMessage.class.getName(), ComplaintCreatedQueueMessage.class,
+            ComplaintSlaWarningQueueMessage.class.getName(), ComplaintSlaWarningQueueMessage.class
+    );
 
     private final ObjectMapper objectMapper;
 
@@ -39,7 +49,7 @@ public class JacksonTextMessageConverter implements MessageConverter {
             TextMessage textMessage = asTextMessage(message);
             return objectMapper.readValue(textMessage.getText(), resolveTargetType(textMessage));
         }
-        catch (ClassNotFoundException | JsonProcessingException exception) {
+        catch (JsonProcessingException exception) {
             throw new MessageConversionException("Unable to deserialize JMS payload", exception);
         }
     }
@@ -51,11 +61,15 @@ public class JacksonTextMessageConverter implements MessageConverter {
         throw new MessageConversionException("Expected a JMS TextMessage");
     }
 
-    private Class<?> resolveTargetType(Message message) throws JMSException, ClassNotFoundException {
+    private Class<?> resolveTargetType(Message message) throws JMSException {
         String typeName = message.getStringProperty(TYPE_ID_PROPERTY);
         if (typeName == null || typeName.isBlank()) {
             throw new MessageConversionException("JMS payload type header is missing");
         }
-        return Class.forName(typeName);
+        Class<?> targetType = PAYLOAD_TYPES.get(typeName);
+        if (targetType == null) {
+            throw new MessageConversionException("Unsupported JMS payload type");
+        }
+        return targetType;
     }
 }

@@ -19,7 +19,8 @@ import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
 import com.complaintmanagementservice.adapters.out.resilience.ResilientExecutor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -37,6 +38,8 @@ public class ComplaintPersistenceAdapter implements ComplaintRepositoryPort {
     private final CategoryJpaRepository categoryJpaRepository;
     private final ComplaintPersistenceMapper complaintPersistenceMapper;
     private final ResilientExecutor resilientExecutor;
+    private final TransactionTemplate writeTransaction;
+    private final TransactionTemplate readTransaction;
 
     public ComplaintPersistenceAdapter(
             ComplaintJpaRepository complaintJpaRepository,
@@ -44,7 +47,8 @@ public class ComplaintPersistenceAdapter implements ComplaintRepositoryPort {
             ComplaintStatusJpaRepository complaintStatusJpaRepository,
             CategoryJpaRepository categoryJpaRepository,
             ComplaintPersistenceMapper complaintPersistenceMapper,
-            ResilientExecutor resilientExecutor
+            ResilientExecutor resilientExecutor,
+            PlatformTransactionManager transactionManager
     ) {
         this.complaintJpaRepository = complaintJpaRepository;
         this.customerJpaRepository = customerJpaRepository;
@@ -52,12 +56,14 @@ public class ComplaintPersistenceAdapter implements ComplaintRepositoryPort {
         this.categoryJpaRepository = categoryJpaRepository;
         this.complaintPersistenceMapper = complaintPersistenceMapper;
         this.resilientExecutor = resilientExecutor;
+        this.writeTransaction = new TransactionTemplate(transactionManager);
+        this.readTransaction = new TransactionTemplate(transactionManager);
+        this.readTransaction.setReadOnly(true);
     }
 
     @Override
-    @Transactional
     public Complaint save(Complaint complaint) {
-        return resilientExecutor.executeSupplier(ResilienceProfile.PERSISTENCE, () -> {
+        return resilientExecutor.executeSupplier(ResilienceProfile.PERSISTENCE, () -> writeTransaction.execute(status -> {
             CustomerEntity customerEntity = customerJpaRepository.save(
                     complaintPersistenceMapper.toCustomerEntity(complaint.customer())
             );
@@ -71,31 +77,30 @@ public class ComplaintPersistenceAdapter implements ComplaintRepositoryPort {
                     complaintPersistenceMapper.toEntity(complaint, customerEntity, statusEntity, categoryEntities)
             );
             return complaintPersistenceMapper.toDomain(savedEntity);
-        });
+        }));
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<Complaint> search(SearchComplaintsQuery query) {
         return resilientExecutor.executeSupplier(
                 ResilienceProfile.PERSISTENCE,
-                () -> complaintJpaRepository.findAll(ComplaintSpecifications.from(query), COMPLAINT_DATE_DESC).stream()
+                () -> readTransaction.execute(status ->
+                        complaintJpaRepository.findAll(ComplaintSpecifications.from(query), COMPLAINT_DATE_DESC).stream()
                         .map(complaintPersistenceMapper::toDomain)
-                        .toList()
+                        .toList())
         );
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<Complaint> findNonResolvedComplaintsByComplaintDate(LocalDate complaintDate) {
         return resilientExecutor.executeSupplier(
                 ResilienceProfile.PERSISTENCE,
-                () -> complaintJpaRepository.findNonResolvedByComplaintDate(
+                () -> readTransaction.execute(status -> complaintJpaRepository.findNonResolvedByComplaintDate(
                                 complaintDate,
                                 ComplaintStatus.RESOLVED.id()
                         ).stream()
                         .map(complaintPersistenceMapper::toDomain)
-                        .toList()
+                        .toList())
         );
     }
 }

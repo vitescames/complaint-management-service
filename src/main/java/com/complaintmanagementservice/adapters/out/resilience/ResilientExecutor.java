@@ -1,6 +1,5 @@
 package com.complaintmanagementservice.adapters.out.resilience;
 
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 
@@ -33,16 +32,5 @@ public class ResilientExecutor {
             runnable.run();
             return null;
         });
-    }
-
-    public boolean isCallPermitted(ResilienceProfile profile) {
-        try {
-            executeRunnable(profile, () -> {
-            });
-            return true;
-        }
-        catch (CallNotPermittedException exception) {
-            return false;
-        }
     }
 }

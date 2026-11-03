@@ -3,6 +3,7 @@ package com.complaintmanagementservice.adapters.in.rest.mapper;
 import com.complaintmanagementservice.adapters.in.rest.dto.ComplaintSearchResponse;
 import com.complaintmanagementservice.adapters.in.rest.dto.CreateComplaintRestResponse;
 import com.complaintmanagementservice.domain.model.Complaint;
+import com.complaintmanagementservice.domain.model.Category;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -32,7 +33,7 @@ public class ComplaintResponseMapper {
                         complaint.customer().emailAddress().value()
                 ),
                 complaint.categories().stream()
-                        .sorted(Comparator.comparing(category -> category.name().toLowerCase()))
+                        .sorted(Comparator.comparing(Category::name, String.CASE_INSENSITIVE_ORDER))
                         .map(category -> new ComplaintSearchResponse.CategoryPayload(category.id(), category.name()))
                         .toList(),
                 complaint.documentUrls().stream().map(documentUrl -> documentUrl.value()).toList(),

@@ -2,6 +2,7 @@ package com.complaintmanagementservice.domain.model;
 
 import com.complaintmanagementservice.domain.exception.DomainValidationException;
 
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 public record EmailAddress(String value) {
@@ -13,7 +14,7 @@ public record EmailAddress(String value) {
         if (value == null) {
             throw new DomainValidationException("O e-mail é obrigatório.");
         }
-        String normalized = value.trim().toLowerCase();
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
         if (!EMAIL_PATTERN.matcher(normalized).matches()) {
             throw new DomainValidationException("E-mail inválido.");
         }
