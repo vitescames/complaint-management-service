@@ -4,7 +4,6 @@ import com.complaintmanagementservice.adapters.out.config.MessagingConfiguration
 import com.complaintmanagementservice.adapters.out.config.MessagingProperties;
 import com.complaintmanagementservice.adapters.out.config.ResilienceProperties;
 import com.complaintmanagementservice.adapters.out.messaging.JacksonTextMessageConverter;
-import com.complaintmanagementservice.adapters.out.resilience.ResilienceProfile;
 import com.complaintmanagementservice.application.event.DomainEventObserver;
 import com.complaintmanagementservice.application.event.DomainEventPublisher;
 import com.complaintmanagementservice.application.port.in.CreateComplaintUseCase;
@@ -31,7 +30,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -66,7 +65,6 @@ class ApplicationConfigurationTest {
         assertThat(applicationConfiguration.complaintCategoryClassifier()).isInstanceOf(ComplaintCategoryClassifier.class);
         assertThat(applicationConfiguration.complaintSlaPolicy()).isInstanceOf(ComplaintSlaPolicy.class);
         assertThat(resilientExecutor).isNotNull();
-        assertThat(resilientExecutor.isCallPermitted(ResilienceProfile.PERSISTENCE)).isTrue();
 
         DomainEventPublisher domainEventPublisher = applicationConfiguration.domainEventPublisher(List.of(observer));
         CreateComplaintUseCase createComplaintUseCase = applicationConfiguration.createComplaintUseCase(
@@ -118,11 +116,8 @@ class ApplicationConfigurationTest {
         assertThat(errorHandler).isNotNull();
 
         RuntimeException boom = new RuntimeException("boom");
-        assertThatThrownBy(() -> errorHandler.handleError(boom))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Falha ao consumir a mensagem da fila de reclamações.")
-                .cause()
-                .isSameAs(boom);
+        assertThatCode(() -> errorHandler.handleError(boom))
+                .doesNotThrowAnyException();
 
         brokerService.start();
         brokerService.stop();

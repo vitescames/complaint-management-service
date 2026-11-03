@@ -2,6 +2,8 @@ package com.complaintmanagementservice.adapters.out.messaging;
 
 import com.complaintmanagementservice.adapters.out.messaging.dto.ComplaintCreatedQueueMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.jms.Message;
+import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 import org.junit.jupiter.api.Test;
 import org.springframework.jms.support.converter.MessageConversionException;
@@ -17,9 +19,9 @@ class JacksonTextMessageConverterTest {
 
     @Test
     void shouldRejectUnsupportedSerializationPayload() throws Exception {
-        JacksonTextMessageConverter converter = new JacksonTextMessageConverter(new com.fasterxml.jackson.databind.ObjectMapper());
-        jakarta.jms.Session session = mock(jakarta.jms.Session.class);
-        jakarta.jms.TextMessage textMessage = mock(jakarta.jms.TextMessage.class);
+        JacksonTextMessageConverter converter = new JacksonTextMessageConverter(new ObjectMapper());
+        Session session = mock(Session.class);
+        TextMessage textMessage = mock(TextMessage.class);
         when(session.createTextMessage(anyString())).thenReturn(textMessage);
         RecursivePayload payload = new RecursivePayload();
 
@@ -30,9 +32,9 @@ class JacksonTextMessageConverterTest {
 
     @Test
     void shouldRejectNonTextMessagesAndMissingTypeHeader() throws Exception {
-        JacksonTextMessageConverter converter = new JacksonTextMessageConverter(new com.fasterxml.jackson.databind.ObjectMapper());
-        jakarta.jms.Message message = mock(jakarta.jms.Message.class);
-        jakarta.jms.TextMessage textMessage = mock(jakarta.jms.TextMessage.class);
+        JacksonTextMessageConverter converter = new JacksonTextMessageConverter(new ObjectMapper());
+        Message message = mock(Message.class);
+        TextMessage textMessage = mock(TextMessage.class);
         when(textMessage.getStringProperty("_type")).thenReturn(null);
         when(textMessage.getText()).thenReturn("{}");
 
@@ -50,9 +52,21 @@ class JacksonTextMessageConverterTest {
     }
 
     @Test
+    void shouldRejectLoadableClassesOutsideThePayloadAllowlist() throws Exception {
+        JacksonTextMessageConverter converter = new JacksonTextMessageConverter(new ObjectMapper());
+        TextMessage message = mock(TextMessage.class);
+        when(message.getStringProperty("_type")).thenReturn(String.class.getName());
+        when(message.getText()).thenReturn("\"unexpected\"");
+
+        assertThatThrownBy(() -> converter.fromMessage(message))
+                .isInstanceOf(MessageConversionException.class)
+                .hasMessage("Unsupported JMS payload type");
+    }
+
+    @Test
     void shouldRejectInvalidDeserializationPayload() throws Exception {
         JacksonTextMessageConverter converter = new JacksonTextMessageConverter(new ObjectMapper());
-        jakarta.jms.TextMessage textMessage = mock(TextMessage.class);
+        TextMessage textMessage = mock(TextMessage.class);
         when(textMessage.getStringProperty("_type")).thenReturn(ComplaintCreatedQueueMessage.class.getName());
         when(textMessage.getText()).thenReturn("not-json");
 

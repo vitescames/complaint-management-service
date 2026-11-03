@@ -582,6 +582,13 @@ Profiles are configured in `src/main/resources/application.yml` for:
 - `application.resilience.persistence`
 - `application.resilience.messaging`
 
+Each persistence attempt has its own transaction in the complaint repository adapter.
+Persistence retries are limited to transient data access failures.
+
+Complaint creation commits to the database before sending its JMS event. If the send fails,
+the complaint may already exist even though the caller receives an error. A transactional
+outbox is outside the scope of this PoC.
+
 ---
 
 ## Main Files

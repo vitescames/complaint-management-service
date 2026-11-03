@@ -33,8 +33,7 @@ public final class ObserverDomainEventPublisher implements DomainEventPublisher 
                 .forEach(observer -> notifyObserver(observer, event));
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends DomainEvent> void notifyObserver(DomainEventObserver<? extends DomainEvent> observer, DomainEvent event) {
-        ((DomainEventObserver<T>) observer).onEvent((T) event);
+    private <T extends DomainEvent> void notifyObserver(DomainEventObserver<T> observer, DomainEvent event) {
+        observer.onEvent(observer.supportedEventType().cast(event));
     }
 }

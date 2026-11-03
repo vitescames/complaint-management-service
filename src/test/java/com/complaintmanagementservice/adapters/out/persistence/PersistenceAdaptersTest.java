@@ -1,6 +1,8 @@
 package com.complaintmanagementservice.adapters.out.persistence;
 
+import com.complaintmanagementservice.ApplicationConfiguration;
 import com.complaintmanagementservice.TestFixtures;
+import com.complaintmanagementservice.adapters.out.config.ResilienceProperties;
 import com.complaintmanagementservice.adapters.out.persistence.entity.CategoryEntity;
 import com.complaintmanagementservice.adapters.out.persistence.entity.ComplaintEntity;
 import com.complaintmanagementservice.adapters.out.persistence.entity.ComplaintStatusEntity;
@@ -19,6 +21,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
+import org.springframework.dao.TransientDataAccessResourceException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -31,6 +36,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,6 +58,8 @@ class PersistenceAdaptersTest {
 
     @Mock
     private ResilientExecutor resilientExecutor;
+
+    private final PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class, RETURNS_MOCKS);
 
     @Test
     void shouldLoadCategoryCatalogThroughResilience() {
@@ -97,7 +107,8 @@ class PersistenceAdaptersTest {
                 complaintStatusJpaRepository,
                 categoryJpaRepository,
                 mapper,
-                resilientExecutor
+                resilientExecutor,
+                transactionManager
         );
         ComplaintStatusEntity statusEntity = new ComplaintStatusEntity(1, "PENDING");
         CustomerEntity customerEntity = new CustomerEntity("52998224725", "Maria Silva", LocalDate.of(1990, 6, 15), "maria.silva@example.com");
@@ -123,6 +134,31 @@ class PersistenceAdaptersTest {
     }
 
     @Test
+    void shouldRollBackFailedAttemptBeforeRetryingInANewTransaction() {
+        var settings = new ResilienceProperties.ProfileSettings(2, 0, 2, 2, 50f, 1000);
+        var executor = new ApplicationConfiguration().resilientExecutor(new ResilienceProperties(settings, settings));
+        var firstTransaction = new SimpleTransactionStatus();
+        var secondTransaction = new SimpleTransactionStatus();
+        when(transactionManager.getTransaction(any())).thenReturn(firstTransaction, secondTransaction);
+        var date = LocalDate.of(2026, 3, 16);
+        when(complaintJpaRepository.findNonResolvedByComplaintDate(date, 3))
+                .thenThrow(new TransientDataAccessResourceException("Temporary failure"))
+                .thenReturn(List.of());
+        var adapter = new ComplaintPersistenceAdapter(
+                complaintJpaRepository, customerJpaRepository, complaintStatusJpaRepository, categoryJpaRepository,
+                new ComplaintPersistenceMapper(new CategoryPersistenceMapper()), executor, transactionManager
+        );
+
+        assertThat(adapter.findNonResolvedComplaintsByComplaintDate(date)).isEmpty();
+
+        var transactions = inOrder(transactionManager);
+        transactions.verify(transactionManager).getTransaction(any());
+        transactions.verify(transactionManager).rollback(firstTransaction);
+        transactions.verify(transactionManager).getTransaction(any());
+        transactions.verify(transactionManager).commit(secondTransaction);
+    }
+
+    @Test
     void shouldFailWhenStatusReferenceIsMissing() {
         ComplaintPersistenceAdapter adapter = new ComplaintPersistenceAdapter(
                 complaintJpaRepository,
@@ -130,7 +166,8 @@ class PersistenceAdaptersTest {
                 complaintStatusJpaRepository,
                 categoryJpaRepository,
                 new ComplaintPersistenceMapper(new CategoryPersistenceMapper()),
-                resilientExecutor
+                resilientExecutor,
+                transactionManager
         );
         when(customerJpaRepository.save(any())).thenReturn(new CustomerEntity("52998224725", "Maria", LocalDate.of(1990, 6, 15), "maria@example.com"));
         when(complaintStatusJpaRepository.findById(1)).thenReturn(Optional.empty());
@@ -151,7 +188,8 @@ class PersistenceAdaptersTest {
                 complaintStatusJpaRepository,
                 categoryJpaRepository,
                 new ComplaintPersistenceMapper(new CategoryPersistenceMapper()),
-                resilientExecutor
+                resilientExecutor,
+                transactionManager
         );
         doThrow(CallNotPermittedException.createCallNotPermittedException(
                 io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("persistence")
@@ -170,7 +208,8 @@ class PersistenceAdaptersTest {
                 complaintStatusJpaRepository,
                 categoryJpaRepository,
                 new ComplaintPersistenceMapper(new CategoryPersistenceMapper()),
-                resilientExecutor
+                resilientExecutor,
+                transactionManager
         );
         doThrow(new IllegalStateException("boom")).when(resilientExecutor).executeSupplier(any(), any());
         LocalDate complaintDate = LocalDate.now();
@@ -188,7 +227,8 @@ class PersistenceAdaptersTest {
                 complaintStatusJpaRepository,
                 categoryJpaRepository,
                 new ComplaintPersistenceMapper(new CategoryPersistenceMapper()),
-                resilientExecutor
+                resilientExecutor,
+                transactionManager
         );
         var complaint = TestFixtures.complaint();
         var searchQuery = TestFixtures.searchQuery();

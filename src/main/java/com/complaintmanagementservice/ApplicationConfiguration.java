@@ -24,6 +24,7 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.TransientDataAccessException;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -61,8 +62,10 @@ public class ApplicationConfiguration {
                         ResilienceProfile.MESSAGING, circuitBreaker("messaging", resilienceProperties.messaging())
                 ),
                 Map.of(
-                        ResilienceProfile.PERSISTENCE, retry("persistence", resilienceProperties.persistence()),
-                        ResilienceProfile.MESSAGING, retry("messaging", resilienceProperties.messaging())
+                        ResilienceProfile.PERSISTENCE, Retry.of("persistence", retryConfig(resilienceProperties.persistence())
+                                .retryExceptions(TransientDataAccessException.class)
+                                .build()),
+                        ResilienceProfile.MESSAGING, Retry.of("messaging", retryConfig(resilienceProperties.messaging()).build())
                 )
         );
     }
@@ -115,11 +118,10 @@ public class ApplicationConfiguration {
                 .build());
     }
 
-    private Retry retry(String name, ResilienceProperties.ProfileSettings settings) {
-        return Retry.of(name, RetryConfig.custom()
+    private RetryConfig.Builder<Object> retryConfig(ResilienceProperties.ProfileSettings settings) {
+        return RetryConfig.custom()
                 .maxAttempts(settings.maxAttempts())
                 .waitDuration(Duration.ofMillis(settings.waitDurationMillis()))
-                .ignoreExceptions(io.github.resilience4j.circuitbreaker.CallNotPermittedException.class)
-                .build());
+                .ignoreExceptions(io.github.resilience4j.circuitbreaker.CallNotPermittedException.class);
     }
 }

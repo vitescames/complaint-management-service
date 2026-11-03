@@ -10,6 +10,8 @@ import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.region.policy.IndividualDeadLetterStrategy;
 import org.apache.activemq.broker.region.policy.PolicyEntry;
 import org.apache.activemq.broker.region.policy.PolicyMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jms.annotation.EnableJms;
@@ -21,6 +23,8 @@ import java.util.List;
 @Configuration
 @EnableJms
 public class MessagingConfiguration {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessagingConfiguration.class);
 
     @Bean(initMethod = "start", destroyMethod = "stop")
     public BrokerService embeddedBroker(MessagingProperties messagingProperties) throws Exception {
@@ -67,9 +71,7 @@ public class MessagingConfiguration {
         factory.setMessageConverter(messageConverter);
         factory.setSessionTransacted(true);
         factory.setSessionAcknowledgeMode(Session.SESSION_TRANSACTED);
-        factory.setErrorHandler(error -> {
-            throw new IllegalStateException("Falha ao consumir a mensagem da fila de reclamações.", error);
-        });
+        factory.setErrorHandler(error -> LOGGER.warn("Complaint queue message processing failed", error));
         return factory;
     }
 

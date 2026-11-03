@@ -87,7 +87,7 @@ public class CreateComplaintUseCaseImpl implements CreateComplaintUseCase {
     }
 
     private LocalDate validateComplaintCreatedDate(LocalDate complaintCreatedDate) {
-        if (complaintCreatedDate != null && complaintCreatedDate.isAfter(LocalDate.now(clock))) {
+        if (complaintCreatedDate.isAfter(LocalDate.now(clock))) {
             throw new BusinessRuleViolationException("A data da reclamação não pode ser futura.");
         }
         return complaintCreatedDate;
